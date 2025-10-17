@@ -9,19 +9,19 @@ import { ThemedView } from '@/components/themed-view';
 export default function SplashScreen() {
   return (
     <ThemedView style={styles.container}>
-      {/* The splash icon image - this is the main visual element */}
+      {/* Background image - covers the entire screen behind other elements */}
       <Image
-        source={require('@/assets/images/splash-icon.png')}
-        style={styles.logo}
+        source={require('@/assets/images/app_bg.jpeg')}
+        style={styles.backgroundImage}
       />
-      {/* Main title text using themed text component for consistent styling */}
-      <ThemedText type="title" style={styles.title}>
-        Welcome to LeARn
-      </ThemedText>
-      {/* Subtitle text with reduced opacity for visual hierarchy */}
-      <ThemedText type="subtitle" style={styles.subtitle}>
-        Your Learning App
-      </ThemedText>
+      {/* Overlay to ensure text readability over the background image */}
+      <ThemedView style={styles.overlay}>
+        {/* The splash icon image - this is the main visual element */}
+        <ThemedText type="title" style={styles.title}>
+          LeARn
+        </ThemedText>
+        {/* Subtitle text with reduced opacity for visual hierarchy */}
+      </ThemedView>
     </ThemedView>
   );
 }
@@ -31,6 +31,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  // Background image style - positioned absolutely to cover entire screen
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover', // Ensures image covers entire area
+  },
+  // Semi-transparent overlay to ensure text is readable over background
+  overlay: {
+    position: 'absolute', // Position absolutely to fill entire screen
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Dark overlay with 30% opacity
+    width: '100%',
+    height: '100%', // Ensure overlay fills entire screen
     padding: 20,
   },
   logo: {
