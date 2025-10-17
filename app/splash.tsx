@@ -27,9 +27,9 @@ export default function SplashScreen() {
       })
     ).start();
 
-    // Navigate to home screen after 3 seconds
+    // Navigate to main view screen after 3 seconds
     const timer = setTimeout(() => {
-      router.replace('/(tabs)');
+      router.replace('/screen/mainview');
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -50,7 +50,7 @@ export default function SplashScreen() {
       <View style={styles.overlay}>
         <View style={styles.contentContainer}>
           <Image
-            source={require('@/assets/images/splash-icon.png')}
+            source={require('@/assets/images/logo.png')}
             style={styles.logo}
           />
           <ThemedText type="title" style={styles.title}>
@@ -118,6 +118,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     color: '#fff',
+    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
+    // fontFamily: 'your-font-name',
   },
   subtitle: {
     fontSize: 16,
@@ -125,6 +127,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'center',
     color: '#fff',
+    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
+    // fontFamily: 'your-font-name',
   },
   // Modern loading bar styles
   progressBarBackground: {
@@ -146,5 +150,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontStyle: 'italic',
     color: '#fff',
+    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
+    // fontFamily: 'your-font-name',
   },
 });
