@@ -62,7 +62,7 @@ export default function ScannerView() {
         <ThemedText>Loading fonts...</ThemedText>
       </View>
     );
-  }
+  }‹
 
   if (hasPermission === null) {
     return (
@@ -99,7 +99,7 @@ export default function ScannerView() {
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         {/* Header */}
         <View style={styles.header}>
-             <TouchableOpacity
+          <TouchableOpacity
             style={styles.closeButton}
             onPress={() => router.replace('/screen/mainview')}
           >
@@ -108,7 +108,7 @@ export default function ScannerView() {
           <ThemedText type="title" style={styles.title}>
             Camera Object Detector
           </ThemedText>
-    
+          <View style={{ width: moderateScale(40) }} /> {/* Spacer to balance the header */}
         </View>
 
         {/* Scanner frame */}
@@ -141,7 +141,7 @@ export default function ScannerView() {
         {/* Camera button (lucide icon) */}
         <View style={styles.bottomNavContainer}>
         <TouchableOpacity style={styles.cameraButtonCurved} onPress={() => {}}>
-  <CameraIcon color="black" size={moderateScale(35)} />
+  <CameraIcon color="white" size={moderateScale(35)} />
 </TouchableOpacity>
         </View>
       </Animated.View>
