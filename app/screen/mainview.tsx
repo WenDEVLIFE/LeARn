@@ -1,16 +1,28 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Spacer } from '@/components/spacer';
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
 
 // Main view screen with Poppins font
+// Design guidelines - based on standard mobile screen size (375x812)
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+// Responsive scaling functions
+const scale = (size: number) => (Dimensions.get('window').width / guidelineBaseWidth) * size;
+const verticalScale = (size: number) => (Dimensions.get('window').height / guidelineBaseHeight) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
 export default function MainScreen() {
+  // Get screen dimensions for responsive design
+  const { width, height } = Dimensions.get('window');
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const popupAnim = useRef(new Animated.Value(0)).current;
   
   const [fontsLoaded] = useAppFonts();
 
@@ -30,6 +42,14 @@ export default function MainScreen() {
         useNativeDriver: false,
       })
     ).start();
+
+    // Popup animation for the entire view
+    Animated.spring(popupAnim, {
+      toValue: 1,
+      friction: 8,
+      tension: 50,
+      useNativeDriver: true,
+    }).start();
 
   }, []);
 
@@ -58,7 +78,18 @@ export default function MainScreen() {
         style={styles.backgroundImage}
       />
       <View style={styles.overlay}>
-        <View style={styles.contentContainer}>
+        <Animated.View 
+          style={[styles.contentContainer, {
+            opacity: popupAnim,
+            transform: [{
+              scale: popupAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.8, 1]
+              })
+            }]
+          }]}
+        >
+          <Spacer height={height * 0.1} />
           {/* Logo and title in a row */}
           <View style={styles.logoTitleRow}>
             <Image
@@ -69,7 +100,7 @@ export default function MainScreen() {
               LeARn
             </ThemedText>
           </View>
-                    <Spacer height={20} />
+                    <Spacer height={height * 0.3} />
           {/* Button container for proper spacing */}
           <View style={styles.buttonContainer}>
             {/* Custom styled button */}
@@ -77,7 +108,7 @@ export default function MainScreen() {
               style={styles.button} 
               onPress={() => router.push('/(tabs)')}
             >
-              <Text style={styles.buttonText}>Get Started</Text>
+              <Text style={styles.buttonText}>Start Scanning</Text>
             </TouchableOpacity>
             <Spacer height={20} />
             <TouchableOpacity 
@@ -87,7 +118,7 @@ export default function MainScreen() {
               <Text style={styles.buttonText}>Flash Card Library</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </View>
   );
@@ -116,23 +147,23 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start', // Align content to the top
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 20,
-    paddingTop: 60, // Push content down from top
+    paddingHorizontal: moderateScale(20),
+    paddingTop: moderateScale(60), // Push content down from top
   },
   // New style for horizontal layout
   logoTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: moderateScale(30),
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginRight: 15,
+    width: moderateScale(80),
+    height: moderateScale(80),
+    marginRight: moderateScale(15),
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 36,
+    fontSize: moderateScale(36),
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 1,
@@ -141,8 +172,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#FF5C4D',
-    width: 250, // Fixed width for consistent button sizes
-    paddingVertical: 15,
+    width: moderateScale(250), // Fixed width for consistent button sizes
+    paddingVertical: moderateScale(15),
     borderRadius: 10,
     elevation: 5,
     shadowColor: '#000',
@@ -153,7 +184,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: '600',
     fontFamily: 'Poppins-SemiBold',
     textAlign: 'center', // Ensure text is centered
@@ -163,6 +194,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // Center buttons vertically
     width: '100%',
     alignItems: 'center',
-    paddingBottom: 50, // Add space at the bottom
+    paddingBottom: moderateScale(50), // Add space at the bottom
   },
 });

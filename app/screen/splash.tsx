@@ -1,9 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, View } from 'react-native';
+import { Animated, Dimensions, Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
+
+// Design guidelines - based on standard mobile screen size (375x812)
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+// Responsive scaling functions
+const scale = (size: number) => (Dimensions.get('window').width / guidelineBaseWidth) * size;
+const verticalScale = (size: number) => (Dimensions.get('window').height / guidelineBaseHeight) * size;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
 // Splash screen with modern loading bar and Poppins font
 export default function SplashScreen() {
@@ -123,27 +132,27 @@ const styles = StyleSheet.create({
   contentContainer: {
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 20,
+    paddingHorizontal: moderateScale(20),
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
+    width: moderateScale(150),
+    height: moderateScale(150),
+    marginBottom: moderateScale(20),
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 36,
+    fontSize: moderateScale(36),
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: moderateScale(8),
     textAlign: 'center',
     letterSpacing: 1,
     color: '#fff',
     fontFamily: 'Poppins-Bold',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     opacity: 0.8,
-    marginBottom: 30,
+    marginBottom: moderateScale(30),
     textAlign: 'center',
     color: '#fff',
     fontFamily: 'Poppins-Regular',
@@ -151,20 +160,20 @@ const styles = StyleSheet.create({
   // Modern loading bar styles
   progressBarBackground: {
     width: '80%',
-    height: 6,
+    height: moderateScale(6),
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
     overflow: 'hidden',
-    marginBottom: 10,
+    marginBottom: moderateScale(10),
   },
   progressBar: {
     height: '100%',
     backgroundColor: '#fff',
-    borderRadius: 3,
+    borderRadius: moderateScale(3),
   },
   loadingText: {
-    marginTop: 20,
-    fontSize: 14,
+    marginTop: moderateScale(20),
+    fontSize: moderateScale(14),
     opacity: 0.8,
     fontStyle: 'italic',
     color: '#fff',
