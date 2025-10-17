@@ -106,7 +106,7 @@ export default function MainScreen() {
             {/* Custom styled button */}
             <TouchableOpacity 
               style={styles.button} 
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => router.push('/screen/scannerview')}
             >
               <Text style={styles.buttonText}>Start Scanning</Text>
             </TouchableOpacity>
