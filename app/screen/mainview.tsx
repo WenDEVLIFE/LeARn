@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Animated, Image, StyleSheet, View } from 'react-native';
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { Spacer } from '@/components/spacer';
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
 
@@ -30,12 +31,6 @@ export default function MainScreen() {
       })
     ).start();
 
-    // Navigate to home screen after 3 seconds
-    const timer = setTimeout(() => {
-      router.replace('/(tabs)');
-    }, 3000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   // Interpolate progress bar width
@@ -52,11 +47,6 @@ export default function MainScreen() {
           source={require('@/assets/images/app_bg.jpeg')}
           style={styles.backgroundImage}
         />
-        <View style={styles.overlay}>
-          <View style={styles.contentContainer}>
-            <ThemedText>Loading fonts...</ThemedText>
-          </View>
-        </View>
       </View>
     );
   }
@@ -69,21 +59,34 @@ export default function MainScreen() {
       />
       <View style={styles.overlay}>
         <View style={styles.contentContainer}>
-          <Image
-            source={require('@/assets/images/logo.png')}
-            style={styles.logo}
-          />
-          <ThemedText type="title" style={styles.title}>
-            LeARn
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Main View
-          </ThemedText>
-          
-          {/* Simple animated loading text */}
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <ThemedText style={styles.loadingText}>Welcome to Main View</ThemedText>
-          </Animated.View>
+          {/* Logo and title in a row */}
+          <View style={styles.logoTitleRow}>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.logo}
+            />
+            <ThemedText type="title" style={styles.title}>
+              LeARn
+            </ThemedText>
+          </View>
+                    <Spacer height={20} />
+          {/* Button container for proper spacing */}
+          <View style={styles.buttonContainer}>
+            {/* Custom styled button */}
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={() => router.push('/(tabs)')}
+            >
+              <Text style={styles.buttonText}>Get Started</Text>
+            </TouchableOpacity>
+            <Spacer height={20} />
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={() => router.push('/(tabs)')}
+            >
+              <Text style={styles.buttonText}>Flash Card Library</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -107,43 +110,59 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   contentContainer: {
+    flex: 1,
+    justifyContent: 'flex-start', // Align content to the top
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 20,
+    paddingTop: 60, // Push content down from top
+  },
+  // New style for horizontal layout
+  logoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
   },
   logo: {
-    width: 150,
-    height: 150,
-    marginBottom: 20,
+    width: 80,
+    height: 80,
+    marginRight: 15,
     resizeMode: 'contain',
   },
   title: {
     fontSize: 36,
     fontWeight: '700',
-    marginBottom: 8,
     textAlign: 'center',
     letterSpacing: 1,
     color: '#fff',
     fontFamily: 'Poppins-Bold',
   },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.8,
-    marginBottom: 30,
-    textAlign: 'center',
-    color: '#fff',
-    fontFamily: 'Poppins-Regular',
+  button: {
+    backgroundColor: '#FF5C4D',
+    width: 250, // Fixed width for consistent button sizes
+    paddingVertical: 15,
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    alignItems: 'center', // Center text horizontally
   },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 14,
-    opacity: 0.8,
-    fontStyle: 'italic',
+  buttonText: {
     color: '#fff',
-    fontFamily: 'Poppins-Light',
+    fontSize: 18,
+    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+    textAlign: 'center', // Ensure text is centered
+  },
+  buttonContainer: {
+    flex: 1,
+    justifyContent: 'center', // Center buttons vertically
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: 50, // Add space at the bottom
   },
 });
