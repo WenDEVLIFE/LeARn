@@ -2,7 +2,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
 import { Camera, CameraView } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { Camera as CameraIcon } from 'lucide-react-native';
+import { ArrowLeft as BackIcon, Camera as CameraIcon } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -99,15 +99,16 @@ export default function ScannerView() {
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Camera Object Detector
-          </ThemedText>
-          <TouchableOpacity
+             <TouchableOpacity
             style={styles.closeButton}
             onPress={() => router.replace('/screen/mainview')}
           >
-            <Text style={styles.closeButtonText}>×</Text>
+            <BackIcon color="white" size={moderateScale(24)} />
           </TouchableOpacity>
+          <ThemedText type="title" style={styles.title}>
+            Camera Object Detector
+          </ThemedText>
+    
         </View>
 
         {/* Scanner frame */}
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  closeButtonText: { color: 'white', fontSize: moderateScale(30), fontWeight: '300' },
   scannerContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -4,7 +4,7 @@
     "slug": "LeARn",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/ic_launcher.png",
     "scheme": "learn",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
