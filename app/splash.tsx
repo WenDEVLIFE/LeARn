@@ -3,12 +3,15 @@ import { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useAppFonts } from '@/hooks/use-fonts';
 
-// Splash screen with modern loading bar
+// Splash screen with modern loading bar and Poppins font
 export default function SplashScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  
+  const [fontsLoaded] = useAppFonts();
 
   useEffect(() => {
     // Simple fade in animation for the loading text
@@ -40,6 +43,23 @@ export default function SplashScreen() {
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
+
+  // If fonts are not loaded yet, you might want to show a loading indicator
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={require('@/assets/images/app_bg.jpeg')}
+          style={styles.backgroundImage}
+        />
+        <View style={styles.overlay}>
+          <View style={styles.contentContainer}>
+            <ThemedText>Loading fonts...</ThemedText>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -118,8 +138,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     color: '#fff',
-    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
-    // fontFamily: 'your-font-name',
+    fontFamily: 'Poppins-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -127,8 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'center',
     color: '#fff',
-    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
-    // fontFamily: 'your-font-name',
+    fontFamily: 'Poppins-Regular',
   },
   // Modern loading bar styles
   progressBarBackground: {
@@ -150,7 +168,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontStyle: 'italic',
     color: '#fff',
-    // To change font family, uncomment the line below and replace 'your-font-name' with desired font
-    // fontFamily: 'your-font-name',
+    fontFamily: 'Poppins-Light',
   },
 });

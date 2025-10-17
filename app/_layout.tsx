@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppFonts } from '@/hooks/use-fonts';
 
 export const unstable_settings = {
   // Set splash as the initial route instead of tabs
@@ -12,6 +14,14 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useAppFonts();
+
+  // If fonts are not loaded yet, you might want to show a loading indicator
+  if (!fontsLoaded) {
+    return (
+      <ThemedText>Loading fonts...</ThemedText>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

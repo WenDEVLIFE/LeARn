@@ -3,15 +3,17 @@ import { useEffect, useRef } from 'react';
 import { Animated, Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { useAppFonts } from '@/hooks/use-fonts';
 
-// Main view screen
+// Main view screen with Poppins font
 export default function MainScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  
+  const [fontsLoaded] = useAppFonts();
 
   useEffect(() => {
-
     // Simple fade in animation for the loading text
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -30,7 +32,7 @@ export default function MainScreen() {
 
     // Navigate to home screen after 3 seconds
     const timer = setTimeout(() => {
-      
+      router.replace('/(tabs)');
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -42,6 +44,23 @@ export default function MainScreen() {
     outputRange: ['0%', '100%'],
   });
 
+  // If fonts are not loaded yet, you might want to show a loading indicator
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={require('@/assets/images/app_bg.jpeg')}
+          style={styles.backgroundImage}
+        />
+        <View style={styles.overlay}>
+          <View style={styles.contentContainer}>
+            <ThemedText>Loading fonts...</ThemedText>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Image
@@ -51,7 +70,7 @@ export default function MainScreen() {
       <View style={styles.overlay}>
         <View style={styles.contentContainer}>
           <Image
-            source={require('@/assets/images/splash-icon.png')}
+            source={require('@/assets/images/logo.png')}
             style={styles.logo}
           />
           <ThemedText type="title" style={styles.title}>
@@ -109,6 +128,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
     color: '#fff',
+    fontFamily: 'Poppins-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -116,6 +136,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: 'center',
     color: '#fff',
+    fontFamily: 'Poppins-Regular',
   },
   loadingText: {
     marginTop: 20,
@@ -123,5 +144,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontStyle: 'italic',
     color: '#fff',
+    fontFamily: 'Poppins-Light',
   },
 });

@@ -2,12 +2,22 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppFonts } from '@/hooks/use-fonts';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useAppFonts();
+
+  // If fonts are not loaded yet, you might want to show a loading indicator
+  if (!fontsLoaded) {
+    return (
+      <ThemedText>Loading fonts...</ThemedText>
+    );
+  }
 
   return (
     <Tabs

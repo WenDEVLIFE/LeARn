@@ -3,8 +3,16 @@ import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAppFonts } from '@/hooks/use-fonts';
 
 export default function ModalScreen() {
+  const [fontsLoaded] = useAppFonts();
+
+  // If fonts are not loaded yet, you might want to show a loading indicator
+  if (!fontsLoaded) {
+    return <ThemedText>Loading fonts...</ThemedText>;
+  }
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">This is a modal</ThemedText>
