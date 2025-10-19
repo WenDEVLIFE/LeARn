@@ -113,7 +113,7 @@ export default function MainScreen() {
             <Spacer height={20} />
             <TouchableOpacity 
               style={styles.button} 
-              onPress={() => router.push('/(tabs)')}
+              onPress={() => router.push('/screen/flashview')}
             >
               <Text style={styles.buttonText}>Flash Card Library</Text>
             </TouchableOpacity>
