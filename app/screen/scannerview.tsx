@@ -62,7 +62,7 @@ export default function ScannerView() {
         <ThemedText>Loading fonts...</ThemedText>
       </View>
     );
-  }‹
+  }
 
   if (hasPermission === null) {
     return (
