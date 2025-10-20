@@ -18,6 +18,7 @@ export default function FlashCardLibraryView() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.background} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -38,6 +39,14 @@ export default function FlashCardLibraryView() {
 }
 
 const styles = StyleSheet.create({
+  background: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#f1e5c3',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -48,20 +57,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#808080', // Gray background for header
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#d3d3d3', // Light gray circular background
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#fff', // White text for better contrast on gray background
   },
   content: {
     flex: 1,
