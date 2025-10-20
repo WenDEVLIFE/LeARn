@@ -35,6 +35,20 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
+## Firebase Setup
+
+Firebase has been configured for this project. For detailed setup instructions, see:
+
+- [FIREBASE_SETUP.md](FIREBASE_SETUP.md) - Comprehensive setup guide
+- [FIREBASE_ANDROID_SETUP_SUMMARY.md](FIREBASE_ANDROID_SETUP_SUMMARY.md) - Android-specific setup summary
+- [FIREBASE_FEATURES_SUMMARY.md](FIREBASE_FEATURES_SUMMARY.md) - Complete features overview
+- [TOAST_NOTIFICATIONS.md](TOAST_NOTIFICATIONS.md) - Toast notification behavior
+
+The main configuration files are:
+- [config/firebaseConfig.ts](config/firebaseConfig.ts) - Firebase initialization
+- [utils/firebaseHelpers.ts](utils/firebaseHelpers.ts) - Helper functions
+- [components/FirebaseExample.tsx](components/FirebaseExample.tsx) - Reusable example component
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:

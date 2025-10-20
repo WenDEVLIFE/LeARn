@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -9,7 +10,7 @@ import { useAppFonts } from '@/hooks/use-fonts';
 
 export const unstable_settings = {
   // Set splash as the initial route instead of tabs
-  initialRouteName: 'splash',
+  initialRouteName: 'screen/splash',
 };
 
 export default function RootLayout() {
@@ -34,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="screen/flashview" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
+      <Toast />
     </ThemeProvider>
   );
 }

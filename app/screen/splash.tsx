@@ -4,6 +4,8 @@ import { Animated, Dimensions, Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
+import { useFirebaseInit } from '@/hooks/useFirebaseInit';
+import { useFirebaseWithToast } from '@/hooks/useFirebaseWithToast';
 
 // Design guidelines - based on standard mobile screen size (375x812)
 const guidelineBaseWidth = 375;
@@ -21,6 +23,10 @@ export default function SplashScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   
   const [fontsLoaded] = useAppFonts();
+  const { isFirebaseInitialized, isLoading } = useFirebaseInit();
+  
+  // Show Firebase toast notifications
+  useFirebaseWithToast();
 
   useEffect(() => {
     // Simple fade in animation for the loading text
@@ -39,7 +45,7 @@ export default function SplashScreen() {
       })
     ).start();
 
-    // Navigate to main view screen after 3 seconds
+    // Navigate to main view screen after 3 seconds or when Firebase is initialized
     const timer = setTimeout(() => {
       router.replace('/screen/mainview');
     }, 3000);
@@ -97,8 +103,7 @@ export default function SplashScreen() {
                 { width: progressBarWidth }
               ]} 
             />
-          </View>
-          
+          </View>  
           {/* Simple animated loading text */}
           <Animated.View style={{ opacity: fadeAnim }}>
             <ThemedText style={styles.loadingText}>Loading experience...</ThemedText>
@@ -178,5 +183,25 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: '#fff',
     fontFamily: 'Poppins-Light',
+  },
+  // Firebase status styles
+  statusContainer: {
+    marginVertical: moderateScale(10),
+    paddingHorizontal: moderateScale(20),
+    paddingVertical: moderateScale(5),
+    borderRadius: moderateScale(5),
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  statusText: {
+    fontSize: moderateScale(14),
+    textAlign: 'center',
+    color: '#fff',
+    fontFamily: 'Poppins-Regular',
+  },
+  successText: {
+    color: '#4CAF50', // Green color for success
+  },
+  errorText: {
+    color: '#F44336', // Red color for error
   },
 });

@@ -5,6 +5,8 @@ import { Animated, Dimensions, Image, StyleSheet, Text, TouchableOpacity, View }
 import { Spacer } from '@/components/spacer';
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
+import { useFirebaseInit } from '@/hooks/useFirebaseInit';
+import { useFirebaseWithToast } from '@/hooks/useFirebaseWithToast';
 
 // Main view screen with Poppins font
 // Design guidelines - based on standard mobile screen size (375x812)
@@ -25,6 +27,10 @@ export default function MainScreen() {
   const popupAnim = useRef(new Animated.Value(0)).current;
   
   const [fontsLoaded] = useAppFonts();
+  const { isFirebaseInitialized, isLoading } = useFirebaseInit();
+  
+  // Show Firebase toast notifications
+  useFirebaseWithToast();
 
   useEffect(() => {
     // Simple fade in animation for the loading text
@@ -99,8 +105,8 @@ export default function MainScreen() {
             <ThemedText type="title" style={styles.title}>
               LeARn
             </ThemedText>
-          </View>
-                    <Spacer height={height * 0.3} />
+          </View>    
+          <Spacer height={height * 0.25} />
           {/* Button container for proper spacing */}
           <View style={styles.buttonContainer}>
             {/* Custom styled button */}
@@ -169,6 +175,26 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: '#fff',
     fontFamily: 'Poppins-Bold',
+  },
+  // Firebase status styles
+  firebaseStatusContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: moderateScale(5),
+    paddingHorizontal: moderateScale(15),
+    paddingVertical: moderateScale(8),
+    marginBottom: moderateScale(20),
+  },
+  firebaseStatusText: {
+    fontSize: moderateScale(14),
+    color: '#fff',
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+  },
+  firebaseSuccessText: {
+    color: '#4CAF50', // Green for success
+  },
+  firebaseErrorText: {
+    color: '#F44336', // Red for error
   },
   button: {
     backgroundColor: '#FF5C4D',

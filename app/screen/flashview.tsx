@@ -1,12 +1,44 @@
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
+import { getCurrentUser, signInAnonymouslyHelper, signOutHelper } from '@/utils/firebaseHelpers';
 import { useRouter } from 'expo-router';
 import { ArrowLeft as BackIcon } from 'lucide-react-native';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Button, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function FlashCardLibraryView() {
   const router = useRouter();
   const [fontsLoaded] = useAppFonts();
+
+  const handleFirebaseAuth = async () => {
+    try {
+      const result = await signInAnonymouslyHelper();
+      if (!result.success) {
+        console.error('Firebase auth failed');
+      }
+    } catch (error) {
+      console.error('Firebase auth error:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const result = await signOutHelper();
+      if (!result.success) {
+        console.error('Firebase sign out failed');
+      }
+    } catch (error) {
+      console.error('Firebase sign out error:', error);
+    }
+  };
+
+  const handleCheckAuth = () => {
+    const user = getCurrentUser();
+    if (user) {
+      console.log('Current user ID:', user.uid);
+    } else {
+      console.log('No user is currently signed in');
+    }
+  };
 
   if (!fontsLoaded) {
     return (
@@ -33,6 +65,9 @@ export default function FlashCardLibraryView() {
       </View>
       <View style={styles.content}>
         <ThemedText>Flash Card Library Content</ThemedText>
+        <Button title="Sign In Anonymously" onPress={handleFirebaseAuth} />
+        <Button title="Check Auth Status" onPress={handleCheckAuth} />
+        <Button title="Sign Out" onPress={handleSignOut} />
       </View>
     </View>
   );
