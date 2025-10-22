@@ -3,7 +3,7 @@ import { useAppFonts } from '@/hooks/use-fonts';
 import { getCurrentUser, signInAnonymouslyHelper, signOutHelper } from '@/utils/firebaseHelpers';
 import { useRouter } from 'expo-router';
 import { ArrowLeft as BackIcon } from 'lucide-react-native';
-import { Button, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function FlashCardLibraryView() {
   const router = useRouter();
@@ -40,6 +40,30 @@ export default function FlashCardLibraryView() {
     }
   };
 
+  // Define categories for flashcards
+  const categories = [
+    {
+      id: 'animals',
+      name: 'Animals',
+      image: require('@/assets/images/logo.png'),
+    },
+    {
+      id: 'fruits',
+      name: 'Fruits',
+      image: require('@/assets/images/logo.png'),
+    },
+    {
+      id: 'vehicles',
+      name: 'Vehicles',
+      image: require('@/assets/images/logo.png'),
+    },
+    {
+      id: 'shapes',
+      name: 'Shapes & Color',
+      image: require('@/assets/images/logo.png'),
+    },
+  ];
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -59,16 +83,36 @@ export default function FlashCardLibraryView() {
           <BackIcon color="black" size={24} />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>
-          Flash Card Library
+          Flashcard Library
         </ThemedText>
         <View style={{ width: 24 }} />
       </View>
-      <View style={styles.content}>
-        <ThemedText>Flash Card Library Content</ThemedText>
-        <Button title="Sign In Anonymously" onPress={handleFirebaseAuth} />
-        <Button title="Check Auth Status" onPress={handleCheckAuth} />
-        <Button title="Sign Out" onPress={handleSignOut} />
-      </View>
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.grid}>
+          {categories.map((category, index) => (
+            <View 
+              key={category.id} 
+              style={[
+                styles.card,
+                // Remove marginRight for every second item (last item in row)
+                (index + 1) % 2 === 0 && { marginRight: 0 }
+              ]}
+            >
+              <View style={styles.imageContainer}>
+                {/* Fixed: Using Image component correctly */}
+                <Image 
+                  source={category.image} 
+                  style={styles.image} 
+                  resizeMode="contain"
+                />
+              </View>
+              <View style={styles.buttonContainer}>
+                <ThemedText style={styles.buttonText}>{category.name}</ThemedText>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -107,10 +151,54 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff', // White text for better contrast on gray background
   },
-  content: {
+  scrollContainer: {
     flex: 1,
+    paddingTop: 16,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  card: {
+    width: '48%',
+    marginBottom: 16,
+    marginRight: 8,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  image: {
+    width: 70,
+    height: 70,
+  },
+  buttonContainer: {
+    marginTop: 8,
+    alignItems: 'center',
+    backgroundColor: '#FFB300',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
