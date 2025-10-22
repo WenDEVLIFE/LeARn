@@ -26,33 +26,7 @@ export default function InfoView() {
       diet: 'Carnivore (primarily zebras, buffaloes)',
       size: 'Length: 8-10 ft, Weight: 265-420 lbs'
     },
-    {
-      id: 'elephant',
-      name: 'Elephant',
-      image: require('@/assets/images/logo.png'),
-      description: 'Elephants are the largest existing land animals.',
-      habitat: 'Forests, savannas, grasslands',
-      diet: 'Herbivore (grasses, fruits, bark)',
-      size: 'Length: 18-21 ft, Weight: 4,000-14,000 lbs'
-    },
-    {
-      id: 'giraffe',
-      name: 'Giraffe',
-      image: require('@/assets/images/logo.png'),
-      description: 'The giraffe is a tall African hoofed mammal.',
-      habitat: 'Savannas, open woodlands',
-      diet: 'Herbivore (acacia leaves)',
-      size: 'Height: 14-19 ft, Weight: 1,600-2,800 lbs'
-    },
-    {
-      id: 'penguin',
-      name: 'Penguin',
-      image: require('@/assets/images/logo.png'),
-      description: 'Penguins are a group of aquatic flightless birds.',
-      habitat: 'Coastal regions, Antarctica',
-      diet: 'Carnivore (fish, krill, squid)',
-      size: 'Height: 16-47 in, Weight: 2-90 lbs'
-    }
+  
   ];
 
   useEffect(() => {

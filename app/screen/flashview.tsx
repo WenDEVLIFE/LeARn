@@ -141,6 +141,7 @@ export default function FlashCardLibraryView() {
 const AnimatedCard = ({ category, index }: { category: any; index: number }) => {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
 
   useEffect(() => {
     // Staggered entrance animation for each card
@@ -188,32 +189,24 @@ const AnimatedCard = ({ category, index }: { category: any; index: number }) => 
           transform: [{ scale: scaleAnim }]
         }
       ]}
-      onTouchStart={() => {
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 100,
-          useNativeDriver: true,
-        }).start();
-      }}
-      onTouchEnd={() => {
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }).start();
-      }}
     >
-      <View style={styles.imageContainer}>
-        {/* Fixed: Using Image component correctly */}
-        <Image 
-          source={category.image} 
-          style={styles.image} 
-          resizeMode="contain"
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        <ThemedText style={styles.buttonText}>{category.name}</ThemedText>
-      </View>
+      <TouchableOpacity
+        onPress={() => router.push('/screen/entityview')}
+        activeOpacity={0.8}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.imageContainer}>
+          {/* Fixed: Using Image component correctly */}
+          <Image 
+            source={category.image} 
+            style={styles.image} 
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.buttonContainer}>
+          <ThemedText style={styles.buttonText}>{category.name}</ThemedText>
+        </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
