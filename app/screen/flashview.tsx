@@ -3,11 +3,34 @@ import { useAppFonts } from '@/hooks/use-fonts';
 import { getCurrentUser, signInAnonymouslyHelper, signOutHelper } from '@/utils/firebaseHelpers';
 import { useRouter } from 'expo-router';
 import { ArrowLeft as BackIcon } from 'lucide-react-native';
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function FlashCardLibraryView() {
   const router = useRouter();
   const [fontsLoaded] = useAppFonts();
+  
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    // Animate the header and grid entrance
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   const handleFirebaseAuth = async () => {
     try {
@@ -75,7 +98,15 @@ export default function FlashCardLibraryView() {
   return (
     <View style={styles.container}>
       <View style={styles.background} />
-      <View style={styles.header}>
+      <Animated.View 
+        style={[
+          styles.header,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.replace('/screen/mainview')}
@@ -86,36 +117,106 @@ export default function FlashCardLibraryView() {
           Flashcard Library
         </ThemedText>
         <View style={{ width: 24 }} />
-      </View>
+      </Animated.View>
       <ScrollView style={styles.scrollContainer}>
-        <View style={styles.grid}>
+        <Animated.View 
+          style={[
+            styles.grid,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
           {categories.map((category, index) => (
-            <View 
-              key={category.id} 
-              style={[
-                styles.card,
-                // Remove marginRight for every second item (last item in row)
-                (index + 1) % 2 === 0 && { marginRight: 0 }
-              ]}
-            >
-              <View style={styles.imageContainer}>
-                {/* Fixed: Using Image component correctly */}
-                <Image 
-                  source={category.image} 
-                  style={styles.image} 
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.buttonContainer}>
-                <ThemedText style={styles.buttonText}>{category.name}</ThemedText>
-              </View>
-            </View>
+            <AnimatedCard key={category.id} category={category} index={index} />
           ))}
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
 }
+
+// Animated card component
+const AnimatedCard = ({ category, index }: { category: any; index: number }) => {
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Staggered entrance animation for each card
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 100,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 50,
+        delay: index * 100,
+        useNativeDriver: true,
+      })
+    ]).start();
+    
+    // Add a subtle hover effect on load
+    setTimeout(() => {
+      Animated.timing(scaleAnim, {
+        toValue: 1.03,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 1000 + index * 100);
+  }, []);
+
+  return (
+    <Animated.View 
+      style={[
+        styles.card,
+        // Remove marginRight for every second item (last item in row)
+        (index + 1) % 2 === 0 && { marginRight: 0 },
+        {
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }]
+        }
+      ]}
+      onTouchStart={() => {
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+        }).start();
+      }}
+      onTouchEnd={() => {
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }).start();
+      }}
+    >
+      <View style={styles.imageContainer}>
+        {/* Fixed: Using Image component correctly */}
+        <Image 
+          source={category.image} 
+          style={styles.image} 
+          resizeMode="contain"
+        />
+      </View>
+      <View style={styles.buttonContainer}>
+        <ThemedText style={styles.buttonText}>{category.name}</ThemedText>
+      </View>
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   background: {

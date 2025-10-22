@@ -3,11 +3,17 @@ import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
 import { useRouter } from 'expo-router';
 import { ArrowLeft as BackIcon, Volume2 as SpeakerIcon } from 'lucide-react-native';
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function InfoView() {
   const router = useRouter();
   const [fontsLoaded] = useAppFonts();
+  
+  // Animation refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   // Define information items for display
   const infoItems = [
@@ -20,8 +26,58 @@ export default function InfoView() {
       diet: 'Carnivore (primarily zebras, buffaloes)',
       size: 'Length: 8-10 ft, Weight: 265-420 lbs'
     },
-  
+    {
+      id: 'elephant',
+      name: 'Elephant',
+      image: require('@/assets/images/logo.png'),
+      description: 'Elephants are the largest existing land animals.',
+      habitat: 'Forests, savannas, grasslands',
+      diet: 'Herbivore (grasses, fruits, bark)',
+      size: 'Length: 18-21 ft, Weight: 4,000-14,000 lbs'
+    },
+    {
+      id: 'giraffe',
+      name: 'Giraffe',
+      image: require('@/assets/images/logo.png'),
+      description: 'The giraffe is a tall African hoofed mammal.',
+      habitat: 'Savannas, open woodlands',
+      diet: 'Herbivore (acacia leaves)',
+      size: 'Height: 14-19 ft, Weight: 1,600-2,800 lbs'
+    },
+    {
+      id: 'penguin',
+      name: 'Penguin',
+      image: require('@/assets/images/logo.png'),
+      description: 'Penguins are a group of aquatic flightless birds.',
+      habitat: 'Coastal regions, Antarctica',
+      diet: 'Carnivore (fish, krill, squid)',
+      size: 'Height: 16-47 in, Weight: 2-90 lbs'
+    }
   ];
+
+  useEffect(() => {
+    // Animate the main image container
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 900,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 900,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 50,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
 
   if (!fontsLoaded) {
     return (
@@ -47,75 +103,125 @@ export default function InfoView() {
         <View style={{ width: 24 }} />
       </View>
       <ScrollView style={styles.scrollContainer}>
-        {/* Main image at the top, outside of cards */}
-        <Spacer height={16} /> 
-        <View style={styles.imageContainer}>
-          <Image 
-            source={require('@/assets/images/logo.png')} 
-            style={styles.image} 
-            resizeMode="contain"
-          />
-        </View>
+        {/* Main image at the top with animation */}
+        <Animated.View 
+          style={[
+            styles.imageContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim }
+              ]
+            }
+          ]}
+        >
+          <Spacer height={16} /> 
+          <View style={styles.imageContainerInner}>
+            <Image 
+              source={require('@/assets/images/logo.png')} 
+              style={styles.image} 
+              resizeMode="contain"
+            />
+          </View>
+        </Animated.View>
         
         <View style={styles.content}>
-          {infoItems.map((item) => (
-            <View key={item.id} style={styles.card}>
-              {/* Object Name with Speaker Icon */}
-              <View style={styles.nameContainer}>
-                <ThemedText type="defaultSemiBold" style={styles.name}>
-                  {item.name}
-                </ThemedText>
-                <TouchableOpacity style={styles.speakerButton}>
-                  <SpeakerIcon color="#FFB300" size={20} />
-                </TouchableOpacity>
-              </View>
-        
-                <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
-                  Description:
-                </ThemedText>
-                <Spacer height={8} />
-              {/* Description */}
-              <ThemedText style={styles.description}>
-                {item.description}
-              </ThemedText>
-                  <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
-                  Additional Information:
-                </ThemedText>
-              {/* Additional Information */}
-              <View style={styles.infoContainer}>
-
-                <View style={styles.infoRow}>
-                  <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
-                    Habitat:
-                  </ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {item.habitat}
-                  </ThemedText>
-                </View>
-                <View style={styles.infoRow}>
-                  <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
-                    Diet:
-                  </ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {item.diet}
-                  </ThemedText>
-                </View>
-                <View style={styles.infoRow}>
-                  <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
-                    Size:
-                  </ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {item.size}
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
+          {infoItems.map((item, index) => (
+            <AnimatedCard key={item.id} item={item} index={index} />
           ))}
         </View>
       </ScrollView>
     </View>
   );
 }
+
+// Animated card component
+const AnimatedCard = ({ item, index }: { item: any; index: number }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    // Staggered entrance animation for each card
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 150,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        delay: index * 150,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View 
+      style={[
+        styles.card,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }]
+        }
+      ]}
+    >
+      {/* Object Name with Speaker Icon */}
+      <View style={styles.nameContainer}>
+        <ThemedText type="defaultSemiBold" style={styles.name}>
+          {item.name}
+        </ThemedText>
+        <TouchableOpacity style={styles.speakerButton}>
+          <SpeakerIcon color="#FFB300" size={20} />
+        </TouchableOpacity>
+      </View>
+
+      <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
+        Description:
+      </ThemedText>
+      <Spacer height={8} />
+      {/* Description */}
+      <ThemedText style={styles.description}>
+        {item.description}
+      </ThemedText>
+      <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
+        Additional Information:
+      </ThemedText>
+      {/* Additional Information */}
+      <View style={styles.infoContainer}>
+        <View style={styles.infoRow}>
+          <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
+            Habitat:
+          </ThemedText>
+          <ThemedText style={styles.infoValue}>
+            {item.habitat}
+          </ThemedText>
+        </View>
+        <View style={styles.infoRow}>
+          <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
+            Diet:
+          </ThemedText>
+          <ThemedText style={styles.infoValue}>
+            {item.diet}
+          </ThemedText>
+        </View>
+        <View style={styles.infoRow}>
+          <ThemedText type="defaultSemiBold" style={styles.infoLabel}>
+            Size:
+          </ThemedText>
+          <ThemedText style={styles.infoValue}>
+            {item.size}
+          </ThemedText>
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
 
 const styles = StyleSheet.create({
   background: {
@@ -166,6 +272,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   imageContainer: {
+    alignItems: 'center',
+  },
+  imageContainerInner: {
     alignItems: 'center',
     marginBottom: 16,
   },
