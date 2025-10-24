@@ -67,7 +67,7 @@ export default function InfoView() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.replace('/screen/mainview')}
+          onPress={() => router.back()}
         >
           <BackIcon color="black" size={24} />
         </TouchableOpacity>

@@ -45,7 +45,15 @@ export default function SplashScreen() {
       })
     ).start();
 
-    // Navigate to main view screen after 3 seconds or when Firebase is initialized
+    // Only redirect from the splash screen. If user navigated directly to another route
+    // (for example on web: /screen/model), skip the automatic redirect.
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : null;
+    if (pathname && !pathname.includes('/screen/splash') && pathname !== '/' ) {
+      // user opened a different route directly — do not auto-redirect
+      return;
+    }
+
+    // Navigate to main view after 3 seconds (keeps existing behavior when on splash)
     const timer = setTimeout(() => {
       router.replace('/screen/mainview');
     }, 3000);

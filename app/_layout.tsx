@@ -29,6 +29,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="screen/splash" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="screen/model" options={{ title: 'Models', headerShown: true }} />
+        <Stack.Screen name="screen/entityview" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="screen/mainview" options={{ headerShown: false }} />
         <Stack.Screen name="screen/scannerview" options={{ headerShown: false }} />
