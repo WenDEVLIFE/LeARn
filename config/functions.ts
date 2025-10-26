@@ -11,18 +11,19 @@ import {
   addDoc,
   collection,
   deleteDoc,
-  doc,
+  doc, // added (use instead of limitQuery)
+  getDoc // <-- added
+  ,
   getDocs,
-  getFirestore,
-  updateDoc,
-  query,          // added
-  where,          // added
-  serverTimestamp, // added
-  orderBy,        // added
-  limit,           // added (use instead of limitQuery)
-  getDoc           // <-- added
+  getFirestore, // added
+  limit, // added
+  orderBy,
+  query, // added
+  serverTimestamp,
+  updateDoc, // added
+  where
 } from 'firebase/firestore';
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getDownloadURL, getStorage, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
 import { app } from './firebaseConfig';
 
 type ApiResponse<T = any> = {

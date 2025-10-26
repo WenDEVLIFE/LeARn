@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { getDownloadURL, getStorage, ref as storageRef } from 'firebase/storage'; // added
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -46,12 +46,19 @@ export default function ModelScreen() {
   const [imageUrls, setImageUrls] = useState<Record<string,string>>({}); // cache for resolved storage paths
 
   // new states for category + additional info
-  const categories = ['animals', 'fruits', 'vehicles', 'shapes', 'color'];
-  const [category, setCategory] = useState<string>(categories[0]);
+  const categories = ['all', 'animals', 'fruits', 'vehicles', 'shapes', 'color'];
+  const [category, setCategory] = useState<string>(categories[1]);
   const [additionalInfo, setAdditionalInfo] = useState<{ key: string; value: string }[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoKey, setInfoKey] = useState('');
   const [infoValue, setInfoValue] = useState('');
+
+  // datatable controls
+  const [searchText, setSearchText] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterActive, setFilterActive] = useState<'all'|'active'|'inactive'>('all');
+  const [sortBy, setSortBy] = useState<'name'|'category'|'createdAt'|'activated'>('name');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
 
   useEffect(() => {
     fetchItems();
@@ -232,7 +239,7 @@ export default function ModelScreen() {
       setAudioFile(null);
       setShowModal(false);
       setEditingItem(null);
-      setCategory(categories[0]);
+      setCategory(categories[1]);
       setAdditionalInfo([]);
       await fetchItems();
     } catch (err: any) {
@@ -248,7 +255,7 @@ export default function ModelScreen() {
     setName(item.name ?? '');
     setDescription(item.description ?? '');
     // prefill category + additional info
-    setCategory(item.category ?? categories[0]);
+    setCategory(item.category ?? categories[1]);
     setAdditionalInfo(item.additionalInfo ? [...item.additionalInfo] : []);
     // don't prefill local file picks; user can pick new ones to replace
     setImageFile(null);
@@ -259,27 +266,51 @@ export default function ModelScreen() {
 
   async function onDelete(item: ModelItem) {
     if (!item.id) return;
+    // quick log to verify handler is invoked
+    console.log('onDelete triggered for', item.id);
+
+    // web: Alert.alert may not show/behave as expected — use window.confirm for immediate feedback
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Delete model "${item.name ?? item.id}"?`);
+      if (!confirmed) {
+        console.log('web delete cancelled');
+        return;
+      }
+      // proceed to delete (assert id non-null for TS)
+      await performDelete(item.id!);
+      return;
+    }
+
+    // mobile: keep existing Alert flow but log button results
     Alert.alert('Confirm', 'Delete this model?', [
-      { text: 'Cancel', style: 'cancel' },
+      { text: 'Cancel', style: 'cancel', onPress: () => console.log('delete cancelled') },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          setLoading(true);
-          try {
-            const res = await remove('models', { id: item.id });
-            if (!res.success) throw new Error(res.message || 'Delete failed');
-            Alert.alert('Deleted', 'Model deleted');
-            await fetchItems();
-          } catch (e: any) {
-            console.error(e);
-            Alert.alert('Error', e?.message ?? String(e));
-          } finally {
-            setLoading(false);
-          }
+          // assert id non-null for TS
+          await performDelete(item.id!);
         }
       }
     ]);
+  }
+
+  // extracted helper so we can log and reuse
+  async function performDelete(id: string) {
+    setLoading(true);
+    try {
+      console.log('calling remove for', id);
+      const res = await remove('models', { id });
+      console.log('remove response:', res);
+      if (!res.success) throw new Error(res.message || 'Delete failed');
+      Alert.alert('Deleted', 'Model deleted');
+      await fetchItems();
+    } catch (e: any) {
+      console.error('Delete error:', e);
+      Alert.alert('Error', e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+    }
   }
 
   // reset all activated => false
@@ -312,6 +343,98 @@ export default function ModelScreen() {
         }
       }
     ]);
+  }
+
+  // build export payload: group names by category and sort alphabetically
+  function buildExportJson(): Record<string, string[]> {
+    const map: Record<string, string[]> = {};
+    items.forEach(it => {
+      const cat = (it.category && it.category.trim()) ? it.category.trim() : 'uncategorized';
+      if (!map[cat]) map[cat] = [];
+      if (it.name && it.name.trim()) map[cat].push(it.name.trim());
+    });
+    // sort names alphabetically in each category
+    Object.keys(map).forEach(k => map[k].sort((a, b) => a.localeCompare(b)));
+    // return with categories sorted alphabetically
+    const ordered: Record<string, string[]> = {};
+    Object.keys(map).sort((a, b) => a.localeCompare(b)).forEach(k => ordered[k] = map[k]);
+    return ordered;
+  }
+
+  // export JSON: web triggers download, native logs + alert (can be extended to share/file-save)
+  async function exportJson() {
+    try {
+      const payload = buildExportJson();
+      const json = JSON.stringify(payload, null, 2);
+
+      if (Platform.OS === 'web') {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'models_by_category.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        Alert.alert('Export', 'JSON file downloaded');
+      } else {
+        // mobile: fallback - log and notify. Replace with Sharing/FileSystem if desired.
+        console.log('Exported JSON:', json);
+        Alert.alert('Export', 'Exported JSON logged to console. Implement sharing/storage for mobile if needed.');
+      }
+    } catch (e: any) {
+      console.error('Export error:', e);
+      Alert.alert('Error', e?.message ?? String(e));
+    }
+  }
+
+  // derived filtered + sorted data for datatable behaviour
+  const filteredItems = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    const arr = items.filter(it => {
+      if (!it) return false;
+      if (filterCategory !== 'all' && it.category !== filterCategory) return false;
+      if (filterActive === 'active' && !it.activated) return false;
+      if (filterActive === 'inactive' && it.activated) return false;
+
+      if (!q) return true;
+      // search in name, description, category, model filename/path, additional info values
+      const inName = (it.name || '').toLowerCase().includes(q);
+      const inDesc = (it.description || '').toLowerCase().includes(q);
+      const inCat = (it.category || '').toLowerCase().includes(q);
+      const modelStr = typeof it.model === 'string' ? it.model : ((it.model && ((it.model as any).filename || (it.model as any).path)) || '');
+      const inModel = (modelStr || '').toLowerCase().includes(q);
+      const infoStr = (it.additionalInfo || []).map(i => `${i.key} ${i.value}`).join(' ').toLowerCase();
+      const inInfo = infoStr.includes(q);
+      return inName || inDesc || inCat || inModel || inInfo;
+    });
+
+    const cmp = (a: ModelItem, b: ModelItem) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'name') {
+        return dir * ((a.name || '').localeCompare(b.name || ''));
+      }
+      if (sortBy === 'category') {
+        return dir * ((a.category || '').localeCompare(b.category || ''));
+      }
+      if (sortBy === 'activated') {
+        return dir * ((Number(!!a.activated) - Number(!!b.activated)));
+      }
+      // createdAt fallback
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dir * (ta - tb);
+    };
+
+    return arr.slice().sort(cmp);
+  }, [items, searchText, filterCategory, filterActive, sortBy, sortDir]);
+
+  function toggleSort(column: typeof sortBy) {
+    if (sortBy === column) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
   }
 
   function renderRow({ item }: { item: ModelItem }) {
@@ -363,7 +486,13 @@ export default function ModelScreen() {
           <TouchableOpacity onPress={() => onEdit(item)} style={{ padding: 6 }}>
             <Text style={{ color: '#007bff' }}>Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => onDelete(item)} style={{ padding: 6 }}>
+          <TouchableOpacity
+            onPress={() => {
+              console.log('Delete button pressed for', item.id);
+              onDelete(item);
+            }}
+            style={{ padding: 6 }}
+          >
             <Text style={{ color: '#d9534f' }}>Delete</Text>
           </TouchableOpacity>
         </View>
@@ -376,8 +505,45 @@ export default function ModelScreen() {
       <Text style={styles.heading}>Models</Text>
 
       <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-        <Button title="Upload New Model" onPress={() => { setEditingItem(null); setCategory(categories[0]); setAdditionalInfo([]); setShowModal(true); }} />
+        <Button title="Upload New Model" onPress={() => { setEditingItem(null); setCategory(categories[1]); setAdditionalInfo([]); setShowModal(true); }} />
         <Button title="Reset All Active" onPress={resetAllActive} color="#d9534f" disabled={loading} />
+        <Button title="Export JSON" onPress={exportJson} disabled={loading} />
+      </View>
+
+      {/* datatable controls */}
+      <View style={{ marginBottom: 12 }}>
+        <TextInput
+          placeholder="Search name, description, model, info..."
+          value={searchText}
+          onChangeText={setSearchText}
+          style={[styles.input, { marginBottom: 8 }]}
+        />
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            {categories.map(cat => (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setFilterCategory(cat)}
+                style={[styles.pickerBtn, { backgroundColor: filterCategory === cat ? '#007bff' : '#f2f2f2', paddingHorizontal: 10 }]}
+              >
+                <Text style={[styles.pickerText, { color: filterCategory === cat ? '#fff' : '#333' }]}>{cat}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: filterActive === 'all' ? '#007bff' : '#f2f2f2' }]} onPress={() => setFilterActive('all')}>
+              <Text style={[styles.pickerText, { color: filterActive === 'all' ? '#fff' : '#333' }]}>All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: filterActive === 'active' ? '#007bff' : '#f2f2f2' }]} onPress={() => setFilterActive('active')}>
+              <Text style={[styles.pickerText, { color: filterActive === 'active' ? '#fff' : '#333' }]}>Active</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: filterActive === 'inactive' ? '#007bff' : '#f2f2f2' }]} onPress={() => setFilterActive('inactive')}>
+              <Text style={[styles.pickerText, { color: filterActive === 'inactive' ? '#fff' : '#333' }]}>Inactive</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <Modal visible={showModal} animationType="slide" onRequestClose={() => { setShowModal(false); setEditingItem(null); }} transparent>
@@ -392,7 +558,7 @@ export default function ModelScreen() {
             <View style={{ marginBottom: 8 }}>
               <Text style={{ marginBottom: 6, fontSize: 13, fontWeight: '600' }}>Category</Text>
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                {categories.map(cat => (
+                {categories.slice(1).map(cat => (
                   <TouchableOpacity
                     key={cat}
                     onPress={() => setCategory(cat)}
@@ -475,13 +641,13 @@ export default function ModelScreen() {
         </View>
       </Modal>
 
-      <Text style={[styles.subHeading, { marginTop: 18, marginBottom: 8 }]}>Existing Models</Text>
+      <Text style={[styles.subHeading, { marginTop: 18, marginBottom: 8 }]}>Existing Models ({filteredItems.length})</Text>
 
       {loading && items.length === 0 ? (
         <ActivityIndicator />
       ) : (
         <FlatList
-          data={items}
+          data={filteredItems}
           keyExtractor={(i, idx) => i.id ?? String(idx)}
           renderItem={renderRow}
           contentContainerStyle={{ paddingBottom: 120 }}
@@ -489,11 +655,23 @@ export default function ModelScreen() {
           ListHeaderComponent={() => (
             <View style={[styles.tableRow, styles.tableHeader]}>
               <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Thumb</Text></View>
-              <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>Name</Text></View>
-              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Active</Text></View>
+
+              <TouchableOpacity onPress={() => toggleSort('name')} style={[styles.cell, { flex: 2 }]}>
+                <Text style={[styles.cellText, styles.headerText]}>Name {sortBy === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => toggleSort('activated')} style={[styles.cell, { flex: 1 }]}>
+                <Text style={[styles.cellText, styles.headerText]}>Active {sortBy === 'activated' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</Text>
+              </TouchableOpacity>
+
               <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>3D File</Text></View>
-              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Info</Text></View>
+
+              <TouchableOpacity onPress={() => toggleSort('category')} style={[styles.cell, { flex: 1 }]}>
+                <Text style={[styles.cellText, styles.headerText]}>Info {sortBy === 'category' ? (sortDir === 'asc' ? '↑' : '↓') : ''}</Text>
+              </TouchableOpacity>
+
               <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Audio</Text></View>
+
               <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Actions</Text></View>
             </View>
           )}
