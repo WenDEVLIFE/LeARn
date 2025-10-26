@@ -102,9 +102,17 @@ export default function MainScreen() {
               source={require('@/assets/images/logo.png')}
               style={styles.logo}
             />
-            <ThemedText type="title" style={styles.title}>
-              LeARn
-            </ThemedText>
+            {/* Secret: long press the title to go to /model */}
+            <TouchableOpacity
+              onLongPress={() => router.push('/screen/model')}
+              activeOpacity={0.8}
+              accessibilityLabel="LeARn secret navigation"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ThemedText type="title" style={styles.title}>
+                LeARn
+              </ThemedText>
+            </TouchableOpacity>
           </View>    
           <Spacer height={height * 0.25} />
           {/* Button container for proper spacing */}

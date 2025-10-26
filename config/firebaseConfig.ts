@@ -21,14 +21,15 @@ const initializeFirebase = () => {
       });
     } catch {
       // Firebase config - Replace with your actual config from Firebase Console
-      const firebaseConfig = {
-        apiKey: Constants?.expoConfig?.extra?.firebase?.apiKey || "AIzaSyD0Qov1Vx6ZqCNY1YwvZZpbcoHNlGEfKm8",
-        authDomain: Constants?.expoConfig?.extra?.firebase?.authDomain || "learn-9fd4e.firebaseapp.com",
-        projectId: Constants?.expoConfig?.extra?.firebase?.projectId || "learn-9fd4e",
-        storageBucket: Constants?.expoConfig?.extra?.firebase?.storageBucket || "learn-9fd4e.appspot.com",
-        messagingSenderId: Constants?.expoConfig?.extra?.firebase?.messagingSenderId || "462459983821",
-        appId: Constants?.expoConfig?.extra?.firebase?.appId || "1:462459983821:android:7ca5334da837715fb05684"
-      };
+ const firebaseConfig = {
+  apiKey: Constants?.expoConfig?.extra?.firebase?.apiKey || "AIzaSyD0Qov1Vx6ZqCNY1YwvZZpbcoHNlGEfKm8",
+  authDomain: Constants?.expoConfig?.extra?.firebase?.authDomain || "learn-9fd4e.firebaseapp.com", // ✅ FIXED (back to proper domain)
+  projectId: Constants?.expoConfig?.extra?.firebase?.projectId || "learn-9fd4e",
+  storageBucket: Constants?.expoConfig?.extra?.firebase?.storageBucket || "learn-9fd4e.firebasestorage.app", // ✅ FIXED (new domain)
+  messagingSenderId: Constants?.expoConfig?.extra?.firebase?.messagingSenderId || "462459983821",
+  appId: Constants?.expoConfig?.extra?.firebase?.appId || "1:462459983821:android:7ca5334da837715fb05684"
+};
+
 
       // Initialize Firebase
       app = initializeApp(firebaseConfig);
@@ -64,3 +65,4 @@ const app = initializeFirebase();
 const auth = getAuth(app);
 
 export { app, auth };
+

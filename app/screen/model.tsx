@@ -1,20 +1,22 @@
 import * as DocumentPicker from 'expo-document-picker';
+import { getDownloadURL, getStorage, ref as storageRef } from 'firebase/storage'; // added
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Button,
-    FlatList,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity, 
-    View
+  ActivityIndicator,
+  Alert,
+  Button,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { insert, select, uploadFile } from '../../config/functions';
+import { app } from '../../config/firebaseConfig'; // added
+import { insert, remove, select, update, uploadFile } from '../../config/functions'; // added
 
 type ModelItem = {
   id?: string;
@@ -22,8 +24,10 @@ type ModelItem = {
   description?: string;
   image?: string | { filename?: string; path?: string; url?: string };
   model?: string | { filename?: string; path?: string };
+  audio?: string | { filename?: string; path?: string; url?: string };
   activated?: boolean;
-  set?: number;
+  category?: string;
+  additionalInfo?: { key: string; value: string }[]; // added
   createdAt?: any;
   updatedAt?: any;
 };
@@ -33,11 +37,21 @@ export default function ModelScreen() {
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState<any | null>(null);
   const [modelFile, setModelFile] = useState<any | null>(null);
+  const [audioFile, setAudioFile] = useState<any | null>(null);
   const [items, setItems] = useState<ModelItem[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // NEW: modal visibility state
   const [showModal, setShowModal] = useState(false);
+
+  const [editingItem, setEditingItem] = useState<ModelItem | null>(null); // added
+  const [imageUrls, setImageUrls] = useState<Record<string,string>>({}); // cache for resolved storage paths
+
+  // new states for category + additional info
+  const categories = ['animals', 'fruits', 'vehicles', 'shapes', 'color'];
+  const [category, setCategory] = useState<string>(categories[0]);
+  const [additionalInfo, setAdditionalInfo] = useState<{ key: string; value: string }[]>([]);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoKey, setInfoKey] = useState('');
+  const [infoValue, setInfoValue] = useState('');
 
   useEffect(() => {
     fetchItems();
@@ -49,6 +63,8 @@ export default function ModelScreen() {
       const res = await select('models', {});
       const rows = res.success && Array.isArray(res.data) ? res.data : [];
       setItems(rows);
+      // Resolve any storage paths to URLs
+      resolveImageUrls(rows);
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to fetch models');
@@ -57,163 +73,381 @@ export default function ModelScreen() {
     }
   }
 
-  // Determine set number: find smallest set with <10 items, else next new set
-  function getNextSetNumber(existing: ModelItem[]) {
-    const counts: Record<number, number> = {};
-    for (const r of existing) {
-      const s = Number(r.set || 1);
-      counts[s] = (counts[s] || 0) + 1;
-    }
-    // look for lowest set with <10
-    const sets = Object.keys(counts).map(n => Number(n)).sort((a, b) => a - b);
-    for (const s of sets) {
-      if ((counts[s] || 0) < 10) return s;
-    }
-    // no sets or all full -> next set
-    return sets.length ? Math.max(...sets) + 1 : 1;
+  // resolve image string paths to download URLs
+  async function resolveImageUrls(rows: ModelItem[]) {
+    const s = getStorage(app);
+    const toResolve: [string,string][] = []; // [id, path]
+    const next: Record<string,string> = {};
+    rows.forEach(r => {
+      if (!r.id) return;
+      const img = r.image;
+      if (typeof img === 'string') {
+        if (img.startsWith('http')) {
+          next[r.id!] = img;
+        } else {
+          toResolve.push([r.id!, img]);
+        }
+      } else if (img && typeof img === 'object') {
+        const url = (img as any).url;
+        if (url) next[r.id!] = url;
+        else if ((img as any).path) toResolve.push([r.id!, (img as any).path]);
+      }
+    });
+    // set known urls first
+    setImageUrls(prev => ({ ...prev, ...next }));
+    // resolve remaining
+    await Promise.all(toResolve.map(async ([id, path]) => {
+      try {
+        const url = await getDownloadURL(storageRef(s, path));
+        setImageUrls(prev => ({ ...prev, [id]: url }));
+      } catch (e) {
+        console.warn('Failed to resolve image path', path, e);
+      }
+    }));
   }
 
-  // pick image (photos)
+  // 🌐 Unified file picker (web + native)
+  async function pickFile(type: string) {
+    if (Platform.OS === 'web') {
+      return new Promise<any>((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = type;
+        input.onchange = (e: any) => {
+          const file = e.target.files?.[0];
+          if (!file) return resolve(null);
+          const uri = URL.createObjectURL(file);
+          resolve({
+            uri,
+            name: file.name,
+            type: file.type,
+            file, // needed for web uploads
+          });
+        };
+        input.click();
+      });
+    } else {
+      const res = await DocumentPicker.getDocumentAsync({
+        type,
+        copyToCacheDirectory: true,
+      });
+   if (res.canceled) return null; // ✅ correct property
+  const asset = res.assets?.[0];
+  if (!asset) return null;
+
+  return {
+    uri: asset.uri,
+    name: asset.name || asset.uri.split('/').pop(),
+    type: asset.mimeType || 'application/octet-stream',
+  };
+    }
+  }
+
   async function pickImage() {
-    const res = await DocumentPicker.getDocumentAsync({ type: 'image/*' });
-    if (res.type === 'success') {
-      setImageFile({
-        uri: res.uri,
-        name: res.name || res.uri.split('/').pop(),
-        type: res.mimeType || guessMime(res.name)
-      });
-    }
+    const file = await pickFile('image/*');
+    if (file) setImageFile(file);
   }
 
-  // pick 3D model (any file; prefer .gltf .glb .obj)
   async function pickModel() {
-    const res = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-    if (res.type === 'success') {
-      setModelFile({
-        uri: res.uri,
-        name: res.name || res.uri.split('/').pop(),
-        type: res.mimeType || 'application/octet-stream'
-      });
-    }
+    const file = await pickFile('*/*');
+    if (file) setModelFile(file);
   }
 
-  function guessMime(name?: string) {
-    if (!name) return 'application/octet-stream';
-    const ext = name.split('.').pop()?.toLowerCase();
-    if (!ext) return 'application/octet-stream';
-    if (['jpg', 'jpeg'].includes(ext)) return 'image/jpeg';
-    if (ext === 'png') return 'image/png';
-    if (ext === 'gif') return 'image/gif';
-    return 'application/octet-stream';
+  async function pickAudio() {
+    const file = await pickFile('audio/*');
+    if (file) setAudioFile(file);
   }
 
   async function handleUpload() {
     if (!name.trim()) return Alert.alert('Validation', 'Please provide a name');
-    if (!imageFile) return Alert.alert('Validation', 'Please pick an image');
-    if (!modelFile) return Alert.alert('Validation', 'Please pick a 3D model file');
+    if (!imageFile && !editingItem) return Alert.alert('Validation', 'Please pick an image');
+    if (!modelFile && !editingItem) return Alert.alert('Validation', 'Please pick a 3D model file');
 
     setLoading(true);
     try {
-      // decide set number
-      const setNumber = getNextSetNumber(items);
+      // upload image (only if new image picked)
+      let imageData: any = editingItem?.image;
+      if (imageFile) {
+        const imgRes = await uploadFile(imageFile, 'images');
+        if (!imgRes.success) throw new Error(imgRes.message || 'Image upload failed');
+        imageData = imgRes.data ?? imgRes;
+        // ensure we store object with url+path
+        imageData = {
+          filename: imageData.filename,
+          path: imageData.path,
+          url: imageData.url
+        };
+      }
 
-      // upload image to backend assets/images
-      const imgRes = await uploadFile(imageFile as any, 'images');
-      if (!imgRes.success) throw new Error(imgRes.message || 'Image upload failed');
+      // upload 3D model (only if new model picked)
+      let modelData: any = editingItem?.model;
+      if (modelFile) {
+        const modelRes = await uploadFile(modelFile, '3D');
+        if (!modelRes.success) throw new Error(modelRes.message || 'Model upload failed');
+        modelData = modelRes.data ?? modelRes;
+        modelData = {
+          filename: modelData.filename,
+          path: modelData.path,
+          url: modelData.url
+        };
+      }
 
-      // upload 3D model to backend assets/3D
-      const modelRes = await uploadFile(modelFile as any, '3D');
-      if (!modelRes.success) throw new Error(modelRes.message || 'Model upload failed');
+      let audioData: any = editingItem?.audio ?? null;
+      if (audioFile) {
+        const audioRes = await uploadFile(audioFile, 'audio');
+        if (!audioRes.success) throw new Error(audioRes.message || 'Audio upload failed');
+        audioData = audioRes.data ?? audioRes;
+        audioData = {
+          filename: audioData.filename,
+          path: audioData.path,
+          url: audioData.url
+        };
+      }
 
-      const imageData = imgRes.data ?? imgRes;
-      const modelData = modelRes.data ?? modelRes;
+      const payload: any = {
+  name: name.trim(),
+  description: description.trim(),
+  image: typeof imageData === 'string' ? { path: imageData } : imageData,
+  model: typeof modelData === 'string' ? { path: modelData } : modelData,
+  activated: false,
+  category,
+  ...(additionalInfo.length > 0 ? { additionalInfo } : {}), // only include if not empty
+};
+      if (audioData) payload.audio = audioData;
 
-      // insert metadata into Firestore 'models' collection
-      const payload = {
-        name: name.trim(),
-        description: description.trim(),
-        image: imageData.path ?? imageData.url ?? imageData.filename ?? imageData,
-        model: modelData.path ?? modelData.url ?? modelData.filename ?? modelData,
-        activated: true,
-        set: setNumber
-      };
+      if (editingItem && editingItem.id) {
+        const updRes = await update('models', payload, { id: editingItem.id });
+        if (!updRes.success) throw new Error(updRes.message || 'Update failed');
+        Alert.alert('Success', 'Model updated successfully');
+      } else {
+        const insertRes = await insert('models', payload);
+        if (!insertRes.success) throw new Error(insertRes.message || 'Insert failed');
+        Alert.alert('Success', 'Model uploaded successfully');
+      }
 
-      const insertRes = await insert('models', payload);
-      if (!insertRes.success) throw new Error(insertRes.message || 'Insert failed');
-
-      Alert.alert('Success', 'Model uploaded and metadata saved');
-      // reset and refresh
       setName('');
       setDescription('');
       setImageFile(null);
       setModelFile(null);
-      setShowModal(false); // close modal after success
+      setAudioFile(null);
+      setShowModal(false);
+      setEditingItem(null);
+      setCategory(categories[0]);
+      setAdditionalInfo([]);
       await fetchItems();
     } catch (err: any) {
-      console.error(err);
+      console.error('Upload error:', err);
       Alert.alert('Upload error', err?.message ?? String(err));
     } finally {
       setLoading(false);
     }
   }
 
+  async function onEdit(item: ModelItem) {
+    setEditingItem(item);
+    setName(item.name ?? '');
+    setDescription(item.description ?? '');
+    // prefill category + additional info
+    setCategory(item.category ?? categories[0]);
+    setAdditionalInfo(item.additionalInfo ? [...item.additionalInfo] : []);
+    // don't prefill local file picks; user can pick new ones to replace
+    setImageFile(null);
+    setModelFile(null);
+    setAudioFile(null);
+    setShowModal(true);
+  }
+
+  async function onDelete(item: ModelItem) {
+    if (!item.id) return;
+    Alert.alert('Confirm', 'Delete this model?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const res = await remove('models', { id: item.id });
+            if (!res.success) throw new Error(res.message || 'Delete failed');
+            Alert.alert('Deleted', 'Model deleted');
+            await fetchItems();
+          } catch (e: any) {
+            console.error(e);
+            Alert.alert('Error', e?.message ?? String(e));
+          } finally {
+            setLoading(false);
+          }
+        }
+      }
+    ]);
+  }
+
+  // reset all activated => false
+  async function resetAllActive() {
+    Alert.alert('Confirm', 'Set all models to inactive?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: async () => {
+          setLoading(true);
+          try {
+            // ensure we have latest list
+            const res = await select('models', {});
+            const rows: ModelItem[] = res.success && Array.isArray(res.data) ? res.data : [];
+            await Promise.all(rows.map(async (r) => {
+              if (!r.id) return;
+              // update activated only if it's truthy to reduce write ops (optional)
+              if (r.activated) {
+                await update('models', { activated: false }, { id: r.id });
+              }
+            }));
+            Alert.alert('Done', 'All models set to inactive');
+            await fetchItems();
+          } catch (e: any) {
+            console.error(e);
+            Alert.alert('Error', e?.message ?? String(e));
+          } finally {
+            setLoading(false);
+          }
+        }
+      }
+    ]);
+  }
+
   function renderRow({ item }: { item: ModelItem }) {
-    const created = item.createdAt && item.createdAt.toDate ? item.createdAt.toDate() : item.createdAt;
-    const updated = item.updatedAt && item.updatedAt.toDate ? item.updatedAt.toDate() : item.updatedAt;
-    const imageUri = typeof item.image === 'string' ? item.image : (item.image && (item.image.url || item.image.path)) || null;
+    const imageUri =
+      typeof item.image === 'string'
+        ? (item.image.startsWith('http') ? item.image : imageUrls[item.id ?? ''] ?? null)
+        : (item.image && (item.image.url || item.image.path)) || null;
+    const modelName =
+      typeof item.model === 'string'
+        ? item.model
+        : (item.model && (item.model.filename || item.model.path));
+    const audioName: string | null =
+      typeof item.audio === 'string'
+        ? item.audio
+        : (item.audio && (((item.audio as any).filename) || ((item.audio as any).path) || ((item.audio as any).url))) || null;
 
     return (
       <View style={styles.tableRow}>
         <View style={[styles.cell, { flex: 1 }]}>
-          {imageUri ? <Image source={{ uri: imageUri }} style={styles.rowThumb} /> : <Text style={styles.cellText}>—</Text>}
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.rowThumb} />
+          ) : (
+            <Text style={styles.cellText}>—</Text>
+          )}
         </View>
         <View style={[styles.cell, { flex: 2 }]}>
           <Text style={styles.cellText}>{item.name}</Text>
+          {item.category ? <Text style={{ fontSize: 11, color: '#666' }}>{item.category}</Text> : null}
         </View>
-        <View style={[styles.cell, { flex: 1 }]}>
-          <Text style={styles.cellText}>{item.set ?? '-'}</Text>
-        </View>
+
         <View style={[styles.cell, { flex: 1 }]}>
           <Text style={styles.cellText}>{item.activated ? 'Yes' : 'No'}</Text>
         </View>
         <View style={[styles.cell, { flex: 2 }]}>
-          <Text style={styles.cellText} numberOfLines={1}>{typeof item.model === 'string' ? item.model : (item.model && (item.model.filename || item.model.path) )}</Text>
+          <Text style={styles.cellText} numberOfLines={1}>{modelName}</Text>
+        </View>
+
+        {/* Info (moved before audio) */}
+        <View style={[styles.cell, { flex: 1, paddingHorizontal: 8 }]}>
+          <Text style={{ fontSize: 12, color: '#444' }}>{(item.additionalInfo && item.additionalInfo.length) ? `${item.additionalInfo.length} info` : '—'}</Text>
+        </View>
+
+        <View style={[styles.cell, { flex: 1 }]}>
+          <Text style={styles.cellText} numberOfLines={1}>{audioName ?? '—'}</Text>
+        </View>
+
+        {/* Edit / Delete buttons */}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <TouchableOpacity onPress={() => onEdit(item)} style={{ padding: 6 }}>
+            <Text style={{ color: '#007bff' }}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onDelete(item)} style={{ padding: 6 }}>
+            <Text style={{ color: '#d9534f' }}>Delete</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <Text style={styles.heading}>Models</Text>
 
-      {/* Button to open modal form */}
-      <View style={{ marginBottom: 12 }}>
-        <Button title="Upload New Model" onPress={() => setShowModal(true)} />
+      <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+        <Button title="Upload New Model" onPress={() => { setEditingItem(null); setCategory(categories[0]); setAdditionalInfo([]); setShowModal(true); }} />
+        <Button title="Reset All Active" onPress={resetAllActive} color="#d9534f" disabled={loading} />
       </View>
 
-      {/* Modal with the upload form */}
-      <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)} transparent={true}>
+      <Modal visible={showModal} animationType="slide" onRequestClose={() => { setShowModal(false); setEditingItem(null); }} transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={[styles.heading, { marginBottom: 8 }]}>Upload Model</Text>
+            <Text style={[styles.heading, { marginBottom: 8 }]}>{editingItem ? 'Edit Model' : 'Upload Model'}</Text>
 
             <TextInput placeholder="Name" value={name} onChangeText={setName} style={styles.input} />
             <TextInput placeholder="Description" value={description} onChangeText={setDescription} style={[styles.input, { height: 80 }]} multiline />
 
+            {/* Category selector */}
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ marginBottom: 6, fontSize: 13, fontWeight: '600' }}>Category</Text>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {categories.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setCategory(cat)}
+                    style={[styles.pickerBtn, { backgroundColor: category === cat ? '#007bff' : '#f2f2f2' }]}
+                  >
+                    <Text style={[styles.pickerText, { color: category === cat ? '#fff' : '#333' }]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             <View style={styles.pickers}>
               <TouchableOpacity style={styles.pickerBtn} onPress={pickImage}>
-                <Text style={styles.pickerText}>{imageFile ? `Image: ${imageFile.name}` : 'Pick Image'}</Text>
+                <Text style={styles.pickerText}>{imageFile ? `Image: ${imageFile.name}` : (editingItem?.image ? `Image: (kept)` : 'Pick Image')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.pickerBtn} onPress={pickModel}>
-                <Text style={styles.pickerText}>{modelFile ? `Model: ${modelFile.name}` : 'Pick 3D Model'}</Text>
+                <Text style={styles.pickerText}>{modelFile ? `Model: ${modelFile.name}` : (editingItem?.model ? `Model: (kept)` : 'Pick 3D Model')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.pickerBtn} onPress={pickAudio}>
+                <Text style={styles.pickerText}>{audioFile ? `Audio: ${audioFile.name}` : (editingItem?.audio ? `Audio: (kept)` : 'Pick Audio (optional)')}</Text>
               </TouchableOpacity>
             </View>
 
+            {/* Additional info list + add button */}
+            <View style={{ marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontWeight: '600' }}>Additional Information</Text>
+                <Button title="Add" onPress={() => { setInfoKey(''); setInfoValue(''); setShowInfoModal(true); }} />
+              </View>
+
+              {additionalInfo.length === 0 ? (
+                <Text style={{ color: '#666', fontSize: 12 }}>No additional info</Text>
+              ) : (
+                additionalInfo.map((it, idx) => {
+                  const removeItem = () => {
+                    const next = additionalInfo.filter((_, i) => i !== idx);
+                    setAdditionalInfo(next);
+                  };
+                  return (
+                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
+                      <Text style={{ flex: 1 }}>{it.key}: {it.value}</Text>
+                      <TouchableOpacity onPress={removeItem}>
+                        <Text style={{ color: '#d9534f' }}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button title="Cancel" onPress={() => setShowModal(false)} />
-              <Button title="Upload" onPress={handleUpload} disabled={loading} />
+              <Button title="Cancel" onPress={() => { setShowModal(false); setEditingItem(null); }} />
+              <Button title={editingItem ? 'Update' : 'Upload'} onPress={handleUpload} disabled={loading} />
             </View>
 
             {loading && <ActivityIndicator style={{ marginTop: 10 }} />}
@@ -221,28 +455,51 @@ export default function ModelScreen() {
         </View>
       </Modal>
 
+      {/* small modal for adding one key:value pair */}
+      <Modal visible={showInfoModal} transparent animationType="fade" onRequestClose={() => setShowInfoModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { width: '90%' }]}>
+            <Text style={{ fontWeight: '700', marginBottom: 8 }}>Add Info</Text>
+            <TextInput placeholder="Key (e.g. habitat)" value={infoKey} onChangeText={setInfoKey} style={styles.input} />
+            <TextInput placeholder="Value (e.g. Savannas, grasslands)" value={infoValue} onChangeText={setInfoValue} style={styles.input} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Button title="Cancel" onPress={() => setShowInfoModal(false)} />
+              <Button title="Add" onPress={() => {
+                if (!infoKey.trim()) return Alert.alert('Validation', 'Please enter key');
+                const next = [...additionalInfo, { key: infoKey.trim(), value: infoValue.trim() }];
+                setAdditionalInfo(next);
+                setShowInfoModal(false);
+              }} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Text style={[styles.subHeading, { marginTop: 18, marginBottom: 8 }]}>Existing Models</Text>
 
-      {loading && items.length === 0 ? <ActivityIndicator /> : (
-        <View style={styles.table}>
-          {/* table header */}
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Thumb</Text></View>
-            <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>Name</Text></View>
-            <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Set</Text></View>
-            <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Active</Text></View>
-            <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>3D File</Text></View>
-          </View>
-
-          <FlatList
-            data={items}
-            keyExtractor={(i) => i.id ?? Math.random().toString()}
-            renderItem={renderRow}
-            contentContainerStyle={{ paddingBottom: 120 }}
-          />
-        </View>
+      {loading && items.length === 0 ? (
+        <ActivityIndicator />
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(i, idx) => i.id ?? String(idx)}
+          renderItem={renderRow}
+          contentContainerStyle={{ paddingBottom: 120 }}
+          style={styles.table}
+          ListHeaderComponent={() => (
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Thumb</Text></View>
+              <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>Name</Text></View>
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Active</Text></View>
+              <View style={[styles.cell, { flex: 2 }]}><Text style={[styles.cellText, styles.headerText]}>3D File</Text></View>
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Info</Text></View>
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Audio</Text></View>
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Actions</Text></View>
+            </View>
+          )}
+        />
       )}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -254,8 +511,6 @@ const styles = StyleSheet.create({
   pickers: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   pickerBtn: { flex: 1, marginHorizontal: 4, padding: 10, backgroundColor: '#f2f2f2', borderRadius: 6, alignItems: 'center' },
   pickerText: { color: '#333' },
-
-  // table styles
   table: { borderWidth: 1, borderColor: '#eee', borderRadius: 8, overflow: 'hidden' },
   tableHeader: { backgroundColor: '#f7f7f7' },
   tableRow: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 8, paddingHorizontal: 10 },
@@ -263,18 +518,6 @@ const styles = StyleSheet.create({
   cellText: { fontSize: 13, color: '#222' },
   headerText: { fontWeight: '700', color: '#333' },
   rowThumb: { width: 60, height: 60, borderRadius: 6, resizeMode: 'cover' },
-
-  // modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 20 },
   modalContent: { backgroundColor: '#fff', borderRadius: 8, padding: 16, elevation: 5 },
-
-  // existing
-  row: { flexDirection: 'row', padding: 10, borderWidth: 1, borderColor: '#eee', borderRadius: 8, marginBottom: 8 },
-  thumbWrap: { width: 100, height: 100, marginRight: 12, justifyContent: 'center', alignItems: 'center' },
-  thumb: { width: 100, height: 100, resizeMode: 'cover', borderRadius: 6 },
-  noThumb: { width: 100, height: 100, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fafafa', borderRadius: 6 },
-  info: { flex: 1 },
-  name: { fontWeight: '700' },
-  desc: { color: '#555', marginBottom: 6 },
-  meta: { fontSize: 11, color: '#666' }
 });

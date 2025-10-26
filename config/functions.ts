@@ -14,19 +14,16 @@ import {
   doc,
   getDocs,
   getFirestore,
-  limit as limitQuery,
-  orderBy,
-  query,
-  serverTimestamp,
   updateDoc,
-  where
+  query,          // added
+  where,          // added
+  serverTimestamp, // added
+  orderBy,        // added
+  limit,           // added (use instead of limitQuery)
+  getDoc           // <-- added
 } from 'firebase/firestore';
-// remove firebase storage imports — uploads go to backend assets folder
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { app } from './firebaseConfig';
-const BACKEND_URL =
-  (typeof process !== 'undefined' && (process.env.BACKEND as string)) ||
-  (typeof process !== 'undefined' && (process.env.REACT_APP_BACKEND as string)) ||
-  'http://localhost:3000/api';
 
 type ApiResponse<T = any> = {
   success: boolean;
@@ -35,6 +32,7 @@ type ApiResponse<T = any> = {
 };
 
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 /* helpers */
 const ok = <T = any>(message: string, data?: T): ApiResponse<T> => ({ success: true, message, data });
@@ -45,6 +43,17 @@ const fail = (message: string, statusData?: any): ApiResponse => ({ success: fal
 */
 export async function select(collectionName: string, conditions: Record<string, any> = {}) {
   try {
+    // If caller provided an id/_id treat it as a document id and fetch the doc directly
+    if (conditions.id || conditions._id) {
+      const docId = conditions.id || conditions._id;
+      const dRef = doc(getFirestore(app), collectionName, docId); // doc ref
+      const snap = await getDoc(dRef);
+      if (!snap.exists()) return fail('No records found');
+      const row = { id: snap.id, ...snap.data() };
+      // keep return shape consistent (array of rows)
+      return ok('Record fetched successfully', [row]);
+    }
+
     const colRef = collection(db, collectionName);
     let qRef = colRef;
     const whereClauses = Object.entries(conditions).map(([k, v]) => where(k, '==', v));
@@ -150,7 +159,7 @@ export async function custom(collectionName: string, options: any = {}) {
     }
 
     if (options.limit) {
-      clauses.push(limitQuery(options.limit));
+      clauses.push(limit(options.limit));
     }
 
     const qRef = clauses.length ? query(col, ...clauses) : query(col);
@@ -162,28 +171,36 @@ export async function custom(collectionName: string, options: any = {}) {
   }
 }
 
-/* Upload single file to Firebase Storage under /uploads/{collectionName}/{timestamp}_{name} */
-export async function uploadFile(file: File, targetFolder = 'assets') {
+/* Upload single file to Firebase Storage under /{targetFolder}/{timestamp}_{name} */
+export async function uploadFile(file: any, targetFolder = 'assets') {
   try {
-    const form = new FormData();
-    form.append('file', file as any);
-    form.append('folder', targetFolder);
+    if (!file || (!file.uri && !file.path)) return fail('No file provided');
 
-    // ensure BACKEND_URL doesn't duplicate /api if already present
-    const url = BACKEND_URL.endsWith('/upload') ? BACKEND_URL : `${BACKEND_URL.replace(/\/$/, '')}/upload`;
+    // In Expo / React Native file has { uri, name, type }
+    const uri = file.uri || file.path;
+    const name = file.name || file.filename || uri.split('/').pop() || `file_${Date.now()}`;
+    const contentType = file.type || 'application/octet-stream';
+    const timestamp = Date.now();
+    const dest = `${targetFolder}/${timestamp}_${name}`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      body: form
+    // fetch blob from uri (works in RN / Expo)
+    const resp = await fetch(uri);
+    const blob = await resp.blob();
+
+    const sRef = storageRef(storage, dest);
+    await new Promise<void>((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(sRef, blob, { contentType });
+      uploadTask.on(
+        'state_changed',
+        () => { /* progress ignored */ },
+        (error) => reject(error),
+        () => resolve()
+      );
     });
 
-    if (!res.ok) {
-      const txt = await res.text();
-      return fail(`Upload failed: ${res.status} ${txt}`);
-    }
+    const url = await getDownloadURL(sRef);
 
-    const json = await res.json();
-    return ok('File uploaded successfully', json.data ?? json);
+    return ok('File uploaded successfully', { filename: name, path: dest, url });
   } catch (err: any) {
     return fail(`Upload failed: ${err?.message ?? String(err)}`);
   }
@@ -206,7 +223,7 @@ export async function sendOtp(email: string) {
 
 export async function verifyOtp(email: string, otp: string) {
   try {
-    const q = query(collection(db, 'otps'), where('email', '==', email), where('otp', '==', otp), orderBy('createdAt', 'desc'), limitQuery(1));
+    const q = query(collection(db, 'otps'), where('email', '==', email), where('otp', '==', otp), orderBy('createdAt', 'desc'), limit(1));
     const snap = await getDocs(q);
     if (snap.empty) return fail('OTP not found or expired');
 

@@ -76,7 +76,7 @@
         "apiKey": "AIzaSyD0Qov1Vx6ZqCNY1YwvZZpbcoHNlGEfKm8",
         "authDomain":"learn-9fd4e.firebaseapp.com",
         "projectId": "learn-9fd4e",
-        "storageBucket":"learn-9fd4e.appspot.com",
+        "storageBucket":"learn-9fd4e.firebasestorage.app",
         "messagingSenderId":"462459983821",
         "appId": "1:462459983821:android:7ca5334da837715fb05684"
       }
