@@ -1,30 +1,111 @@
-
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="static/aframe.min.js"></script>
     <script src="static/aframe-extras.min.js"></script>
     <script src="static/mindar-image-aframe.prod.js"></script>
+    <style>
+      .ar-controls { position: fixed; left: 12px; bottom: 12px; z-index: 9999; display: flex; flex-direction: column; gap:8px; }
+      .ar-btn { display:inline-block; padding:8px 12px; background:#1976d2; color:white; border-radius:6px; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; }
+      .ar-btn:active { transform:translateY(1px); }
+      .category-select { position: fixed; right: 12px; bottom: 12px; z-index:9999; background: rgba(255,255,255,0.95); padding:8px; border-radius:6px; font-family:Arial, sans-serif; }
+      #view-ar-single { display:none; position: fixed; left: 12px; bottom: 12px; z-index: 10000; }
+    </style>
   </head>
   <body>
-    <a-scene mindar-image="imageTargetSrc: static/animals.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-      <a-assets>
-        <a-asset-item id="bearModel" src="static/Alligator.glb"></a-asset-item>
-        <a-asset-item id="raccoonModel" src="static/Cat.glb"></a-asset-item>
-        <a-asset-item id="thirdmodel" src="static/Cow.glb"></a-asset-item>
+    <!-- Category selector (reloads page with ?category=...) -->
+    <div class="category-select">
+      <label for="category">Category:</label>
+      <select id="category" onchange="onCategoryChange()">
+        {% for c in categories %}
+        <option value="{{ c }}" {% if c == current_category %}selected{% endif %}>{{ c|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: static/{{ current_category }}.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+      <a-assets id="scene-assets">
+        {# load only models for the selected category #}
+        {% for m in models %}
+        <a-asset-item id="model{{ loop.index0 }}" src="{{ m.src }}"></a-asset-item>
+        {% endfor %}
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#bearModel" animation-mixer>
+      {% for m in models %}
+      <a-entity mindar-image-target="targetIndex: {{ loop.index0 }}">
+        <a-gltf-model id="gltf-model-{{ loop.index0 }}" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05" src="#model{{ loop.index0 }}" animation-mixer></a-gltf-model>
       </a-entity>
-      <a-entity mindar-image-target="targetIndex: 1">
-        <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#raccoonModel" animation-mixer>
-      </a-entity>
-      <a-entity mindar-image-target="targetIndex: 2">
-        <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#thirdmodel" animation-mixer>
-      </a-entity>
+      {% endfor %}
     </a-scene>
+
+    <!-- Single View AR button shown only for the currently detected model -->
+    <div id="view-ar-single">
+      <a id="view-ar-link" class="ar-btn" href="#" target="_blank" rel="noopener noreferrer">View AR</a>
+    </div>
+
+    <script>
+      function onCategoryChange(){
+        const sel = document.getElementById('category');
+        const val = sel.value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('category', val);
+        window.location.href = url.toString();
+      }
+
+      // When a target is found, show single AR button for that model and mark it activated on the server.
+      document.addEventListener('DOMContentLoaded', () => {
+        const scene = document.getElementById('ar-scene');
+        const models = [
+          {% for m in models %}
+          { index: {{ loop.index0 }}, id: "{{ m.id }}", name: "{{ m.name }}", intent_link: "{{ m.intent_link }}", scene_link: "{{ m.scene_link }}" }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ];
+        const viewBtnWrap = document.getElementById('view-ar-single');
+        const viewLink = document.getElementById('view-ar-link');
+
+        // avoid duplicate activation calls per model during a session
+        const activatedSent = new Set();
+
+        // Attach listeners to each target entity. Only one button shown at a time.
+        const targets = scene.querySelectorAll('[mindar-image-target]');
+        targets.forEach((tgt, idx) => {
+          tgt.addEventListener('targetFound', () => {
+            const m = models[idx];
+            if (!m) return;
+
+            // show single View AR button for this detected model
+            viewLink.href = m.intent_link;
+            viewLink.onclick = function(e){
+              // try intent first; also open web fallback after a short delay
+              setTimeout(function(){ window.open(m.scene_link, '_blank'); }, 600);
+            };
+            viewLink.textContent = 'View AR: ' + m.name;
+            viewBtnWrap.style.display = 'block';
+
+            // notify server once that this model was scanned (mark activated = true)
+            if (m.id && !activatedSent.has(m.id)) {
+              activatedSent.add(m.id);
+              fetch('/activate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: m.id})
+              }).then(res => res.json()).then(j => {
+                if (!j || !j.ok) console.warn('activate failed', j);
+              }).catch(err => {
+                console.warn('activate request error', err);
+              });
+            }
+          });
+          tgt.addEventListener('targetLost', () => {
+            // hide button when target lost
+            viewBtnWrap.style.display = 'none';
+            viewLink.href = '#';
+            viewLink.onclick = null;
+          });
+        });
+      });
+    </script>
   </body>
 </html>

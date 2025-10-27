@@ -25,6 +25,7 @@ type ModelItem = {
   image?: string | { filename?: string; path?: string; url?: string };
   model?: string | { filename?: string; path?: string };
   audio?: string | { filename?: string; path?: string; url?: string };
+  targetCard?: string | { filename?: string; path?: string; url?: string }; // added
   activated?: boolean;
   category?: string;
   additionalInfo?: { key: string; value: string }[]; // added
@@ -38,12 +39,14 @@ export default function ModelScreen() {
   const [imageFile, setImageFile] = useState<any | null>(null);
   const [modelFile, setModelFile] = useState<any | null>(null);
   const [audioFile, setAudioFile] = useState<any | null>(null);
+  const [targetFile, setTargetFile] = useState<any | null>(null); // added
   const [items, setItems] = useState<ModelItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const [editingItem, setEditingItem] = useState<ModelItem | null>(null); // added
   const [imageUrls, setImageUrls] = useState<Record<string,string>>({}); // cache for resolved storage paths
+  const [targetUrls, setTargetUrls] = useState<Record<string,string>>({}); // cache for target card urls (added)
 
   // new states for category + additional info
   const categories = ['all', 'animals', 'fruits', 'vehicles', 'shapes', 'color'];
@@ -72,6 +75,7 @@ export default function ModelScreen() {
       setItems(rows);
       // Resolve any storage paths to URLs
       resolveImageUrls(rows);
+      resolveTargetUrls(rows); // added
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to fetch models');
@@ -109,6 +113,35 @@ export default function ModelScreen() {
         setImageUrls(prev => ({ ...prev, [id]: url }));
       } catch (e) {
         console.warn('Failed to resolve image path', path, e);
+      }
+    }));
+  }
+
+  // resolve target card urls (added)
+  async function resolveTargetUrls(rows: ModelItem[]) {
+    const s = getStorage(app);
+    const toResolve: [string,string][] = [];
+    const next: Record<string,string> = {};
+    rows.forEach(r => {
+      if (!r.id) return;
+      const t = (r as any).targetCard;
+      if (!t) return;
+      if (typeof t === 'string') {
+        if (t.startsWith('http')) next[r.id!] = t;
+        else toResolve.push([r.id!, t]);
+      } else if (t && typeof t === 'object') {
+        const url = (t as any).url;
+        if (url) next[r.id!] = url;
+        else if ((t as any).path) toResolve.push([r.id!, (t as any).path]);
+      }
+    });
+    setTargetUrls(prev => ({ ...prev, ...next }));
+    await Promise.all(toResolve.map(async ([id, path]) => {
+      try {
+        const url = await getDownloadURL(storageRef(s, path));
+        setTargetUrls(prev => ({ ...prev, [id]: url }));
+      } catch (e) {
+        console.warn('Failed to resolve target path', path, e);
       }
     }));
   }
@@ -165,6 +198,12 @@ export default function ModelScreen() {
     if (file) setAudioFile(file);
   }
 
+  // pick target card (added)
+  async function pickTargetCard() {
+    const file = await pickFile('image/*');
+    if (file) setTargetFile(file);
+  }
+
   async function handleUpload() {
     if (!name.trim()) return Alert.alert('Validation', 'Please provide a name');
     if (!imageFile && !editingItem) return Alert.alert('Validation', 'Please pick an image');
@@ -211,6 +250,19 @@ export default function ModelScreen() {
         };
       }
 
+      // upload target card (added)
+      let targetData: any = editingItem?.targetCard ?? null;
+      if (targetFile) {
+        const targetRes = await uploadFile(targetFile, 'targets');
+        if (!targetRes.success) throw new Error(targetRes.message || 'Target upload failed');
+        targetData = targetRes.data ?? targetRes;
+        targetData = {
+          filename: targetData.filename,
+          path: targetData.path,
+          url: targetData.url
+        };
+      }
+
       const payload: any = {
   name: name.trim(),
   description: description.trim(),
@@ -221,6 +273,7 @@ export default function ModelScreen() {
   ...(additionalInfo.length > 0 ? { additionalInfo } : {}), // only include if not empty
 };
       if (audioData) payload.audio = audioData;
+      if (targetData) payload.targetCard = targetData; // added
 
       if (editingItem && editingItem.id) {
         const updRes = await update('models', payload, { id: editingItem.id });
@@ -237,6 +290,7 @@ export default function ModelScreen() {
       setImageFile(null);
       setModelFile(null);
       setAudioFile(null);
+      setTargetFile(null); // added
       setShowModal(false);
       setEditingItem(null);
       setCategory(categories[1]);
@@ -345,48 +399,8 @@ export default function ModelScreen() {
     ]);
   }
 
-  // build export payload: group names by category and sort alphabetically
-  function buildExportJson(): Record<string, string[]> {
-    const map: Record<string, string[]> = {};
-    items.forEach(it => {
-      const cat = (it.category && it.category.trim()) ? it.category.trim() : 'uncategorized';
-      if (!map[cat]) map[cat] = [];
-      if (it.name && it.name.trim()) map[cat].push(it.name.trim());
-    });
-    // sort names alphabetically in each category
-    Object.keys(map).forEach(k => map[k].sort((a, b) => a.localeCompare(b)));
-    // return with categories sorted alphabetically
-    const ordered: Record<string, string[]> = {};
-    Object.keys(map).sort((a, b) => a.localeCompare(b)).forEach(k => ordered[k] = map[k]);
-    return ordered;
-  }
 
-  // export JSON: web triggers download, native logs + alert (can be extended to share/file-save)
-  async function exportJson() {
-    try {
-      const payload = buildExportJson();
-      const json = JSON.stringify(payload, null, 2);
-
-      if (Platform.OS === 'web') {
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'models_by_category.json';
-        a.click();
-        URL.revokeObjectURL(url);
-        Alert.alert('Export', 'JSON file downloaded');
-      } else {
-        // mobile: fallback - log and notify. Replace with Sharing/FileSystem if desired.
-        console.log('Exported JSON:', json);
-        Alert.alert('Export', 'Exported JSON logged to console. Implement sharing/storage for mobile if needed.');
-      }
-    } catch (e: any) {
-      console.error('Export error:', e);
-      Alert.alert('Error', e?.message ?? String(e));
-    }
-  }
-
+  
   // derived filtered + sorted data for datatable behaviour
   const filteredItems = useMemo(() => {
     const q = searchText.trim().toLowerCase();
@@ -450,6 +464,10 @@ export default function ModelScreen() {
       typeof item.audio === 'string'
         ? item.audio
         : (item.audio && (((item.audio as any).filename) || ((item.audio as any).path) || ((item.audio as any).url))) || null;
+    const targetName: string | null =
+      typeof item.targetCard === 'string'
+        ? item.targetCard
+        : (item.targetCard && (((item.targetCard as any).filename) || ((item.targetCard as any).path) || ((item.targetCard as any).url))) || null;
 
     return (
       <View style={styles.tableRow}>
@@ -481,6 +499,11 @@ export default function ModelScreen() {
           <Text style={styles.cellText} numberOfLines={1}>{audioName ?? '—'}</Text>
         </View>
 
+        {/* Target Card (new column) */}
+        <View style={[styles.cell, { flex: 1 }]}>
+          <Text style={styles.cellText} numberOfLines={1}>{targetName ?? '—'}</Text>
+        </View>
+
         {/* Edit / Delete buttons */}
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <TouchableOpacity onPress={() => onEdit(item)} style={{ padding: 6 }}>
@@ -503,13 +526,12 @@ export default function ModelScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Models</Text>
-
+  
       <View style={{ marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
         <Button title="Upload New Model" onPress={() => { setEditingItem(null); setCategory(categories[1]); setAdditionalInfo([]); setShowModal(true); }} />
         <Button title="Reset All Active" onPress={resetAllActive} color="#d9534f" disabled={loading} />
-        <Button title="Export JSON" onPress={exportJson} disabled={loading} />
       </View>
-
+  
       {/* datatable controls */}
       <View style={{ marginBottom: 12 }}>
         <TextInput
@@ -581,6 +603,11 @@ export default function ModelScreen() {
 
               <TouchableOpacity style={styles.pickerBtn} onPress={pickAudio}>
                 <Text style={styles.pickerText}>{audioFile ? `Audio: ${audioFile.name}` : (editingItem?.audio ? `Audio: (kept)` : 'Pick Audio (optional)')}</Text>
+              </TouchableOpacity>
+
+              {/* New button for target card */}
+              <TouchableOpacity style={styles.pickerBtn} onPress={pickTargetCard}>
+                <Text style={styles.pickerText}>{targetFile ? `Target Card: ${targetFile.name}` : (editingItem?.targetCard ? `Target Card: (kept)` : 'Pick Target Card (optional)')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -672,6 +699,8 @@ export default function ModelScreen() {
 
               <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Audio</Text></View>
 
+              <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Target Card</Text></View>
+
               <View style={[styles.cell, { flex: 1 }]}><Text style={[styles.cellText, styles.headerText]}>Actions</Text></View>
             </View>
           )}
@@ -682,7 +711,7 @@ export default function ModelScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: '#fff' },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
   heading: { fontSize: 18, fontWeight: '700', marginBottom: 12 },
   subHeading: { fontSize: 16, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: '#ddd', padding: 8, borderRadius: 6, marginBottom: 8, backgroundColor: '#fff' },
