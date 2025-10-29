@@ -5,20 +5,21 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft as BackIcon, Pause as PauseIcon, Play as PlayIcon } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
+import { ArrowLeft as BackIcon, Pause as PauseIcon, Play as PlayIcon, Volume2 as ReadIcon, VolumeX as StopReadIcon } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Easing,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Easing,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { select } from '../../config/functions';
 
@@ -46,6 +47,9 @@ export default function InfoView() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const lastAudioUriRef = useRef<string | null>(null);
+
+  // Text-to-speech state
+  const [isReading, setIsReading] = useState(false);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -117,6 +121,7 @@ export default function InfoView() {
 
     return () => {
       mounted = false;
+      stopSpeech();
       (async () => {
         if (playerRef.current) {
           await playerRef.current.unloadAsync().catch(() => {});
@@ -212,6 +217,95 @@ export default function InfoView() {
       console.error('Audio error', err);
     } finally {
       setAudioLoading(false);
+    }
+  };
+
+  // Build text to read from description and additional info
+  const buildTextToRead = (): string => {
+    if (!item) return '';
+    
+    let text = '';
+    
+    // Add name first
+    if (item.name) {
+      text += `${item.name}. `;
+    }
+    
+    // Add description
+    if (item.description && item.description.trim()) {
+      text += `Description: ${item.description}. `;
+    }
+    
+    // Add additional info
+    if (item.additionalInfo && Object.keys(item.additionalInfo).length > 0) {
+      text += 'Additional information: ';
+      const infoEntries = Object.entries(item.additionalInfo);
+      infoEntries.forEach(([key, value], index) => {
+        text += `${key}: ${String(value)}`;
+        if (index < infoEntries.length - 1) {
+          text += ', ';
+        }
+      });
+      text += '.';
+    }
+    
+    return text.trim();
+  };
+
+  // Stop speech reading
+  const stopSpeech = () => {
+    if (isReading) {
+      Speech.stop();
+      setIsReading(false);
+    }
+  };
+
+  // Handle text-to-speech toggle
+  const handleToggleRead = async () => {
+    if (!item) return;
+
+    // If currently reading, stop
+    if (isReading) {
+      stopSpeech();
+      return;
+    }
+
+    const textToRead = buildTextToRead();
+    if (!textToRead) {
+      Alert.alert('No content', 'There is no description or additional information to read.');
+      return;
+    }
+
+    try {
+      setIsReading(true);
+      
+      // Stop audio if playing
+      if (isPlaying && playerRef.current) {
+        try {
+          await playerRef.current.pauseAsync();
+        } catch (e) {}
+      }
+
+      await Speech.speak(textToRead, {
+        language: 'en',
+        pitch: 1.0,
+        rate: 0.9,
+        onDone: () => {
+          setIsReading(false);
+        },
+        onStopped: () => {
+          setIsReading(false);
+        },
+        onError: (error) => {
+          console.error('Speech error:', error);
+          setIsReading(false);
+          Alert.alert('Speech Error', 'Unable to read the content. Please check your device settings.');
+        },
+      });
+    } catch (err) {
+      console.error('Speech error', err);
+      setIsReading(false);
+      Alert.alert('Speech Error', 'Unable to read the content. Please check your device settings.');
     }
   };
 
@@ -380,9 +474,22 @@ export default function InfoView() {
 
           <Spacer height={8} />
 
-          <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
-            Description:
-          </ThemedText>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
+              Description:
+            </ThemedText>
+            <TouchableOpacity
+              style={styles.readButton}
+              onPress={handleToggleRead}
+              disabled={!item || (!item.description && (!item.additionalInfo || Object.keys(item.additionalInfo).length === 0))}
+            >
+              {isReading ? (
+                <StopReadIcon color="#fff" size={18} />
+              ) : (
+                <ReadIcon color="#fff" size={18} />
+              )}
+            </TouchableOpacity>
+          </View>
           <Spacer height={6} />
           <ThemedText style={styles.description}>
             {item?.description || 'No description available.'}
@@ -446,6 +553,11 @@ const styles = StyleSheet.create({
   name: { fontSize: 20, fontWeight: '700', color: '#222' },
   audioButton: {
     backgroundColor: '#FFB300',
+    padding: 10,
+    borderRadius: 10,
+  },
+  readButton: {
+    backgroundColor: '#2196F3',
     padding: 10,
     borderRadius: 10,
   },
