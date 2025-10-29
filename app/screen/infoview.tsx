@@ -70,8 +70,11 @@ export default function InfoView() {
 
         if (!row) return;
 
-        const additionalInfoArray = Array.isArray(row.additionalInfo)
-          ? row.additionalInfo
+        const rawAdditional = row.additionalInfo ?? row.additional_info ?? row.info ?? [];
+        const additionalInfoArray = Array.isArray(rawAdditional)
+          ? rawAdditional
+          : typeof rawAdditional === 'object'
+          ? Object.entries(rawAdditional).map(([key, value]) => ({ key, value }))
           : [];
         const additionalInfoObj = additionalInfoArray.reduce((acc: any, it: any) => {
           const k = it?.key ?? it?.name ?? null;
@@ -384,6 +387,22 @@ export default function InfoView() {
           <ThemedText style={styles.description}>
             {item?.description || 'No description available.'}
           </ThemedText>
+
+          {item?.additionalInfo && Object.keys(item.additionalInfo).length > 0 && (
+            <>
+              <Spacer height={12} />
+              <ThemedText type="defaultSemiBold" style={styles.additionaltitle}>
+                Additional info:
+              </ThemedText>
+              <Spacer height={6} />
+              {Object.entries(item.additionalInfo).map(([key, value]) => (
+                <View key={key} style={{ flexDirection: 'row', marginBottom: 6 }}>
+                  <ThemedText style={{ fontWeight: '700', marginRight: 8 }}>{key}:</ThemedText>
+                  <ThemedText>{String(value)}</ThemedText>
+                </View>
+              ))}
+            </>
+          )}
         </Animated.View>
       </ScrollView>
     </View>

@@ -5,15 +5,137 @@
     <script src="static/aframe-extras.min.js"></script>
     <script src="static/mindar-image-aframe.prod.js"></script>
     <style>
-      .ar-controls { position: fixed; left: 12px; bottom: 12px; z-index: 9999; display: flex; flex-direction: column; gap:8px; }
-      .ar-btn { display:inline-block; padding:8px 12px; background:#1976d2; color:white; border-radius:6px; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; }
-      .ar-btn:active { transform:translateY(1px); }
-      .category-select { position: fixed; right: 12px; bottom: 12px; z-index:9999; background: rgba(255,255,255,0.95); padding:8px; border-radius:6px; font-family:Arial, sans-serif; }
-      #view-ar-single { display:none; position: fixed; left: 12px; bottom: 12px; z-index: 10000; }
+      /* moved category selector to top-center */
+      .category-select {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        bottom: auto;
+        z-index: 10003;
+        background: rgba(255,255,255,0.98);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      }
+      #view-ar-single { display:none; } /* legacy - we use card icon now */
+
+      /* hide A-Frame VR button injected in bottom-right */
+      .a-enter-vr, .a-enter-vr-button { display: none !important; }
+
+      /* centered scan card - initially hidden, animated popup */
+      #scan-card {
+        position: fixed;
+        left: 50%;
+        bottom: 200px; /* leave room for footer that will slide up */
+        transform: translateX(-50%) translateY(20px);
+        z-index: 10002;
+        opacity: 0;
+        pointer-events: none;
+        background: rgba(255,255,255,0.98);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-family: "Work Sans", Arial, sans-serif;
+        min-width: 340px;
+        max-width: 720px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        transition: transform 360ms cubic-bezier(.2,.9,.2,1), opacity 360ms ease;
+      }
+      #scan-card.visible {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #scan-card img {
+        width: 96px;
+        height: 96px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex: 0 0 96px;
+        background: #eee;
+      }
+      #scan-card .meta {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap:6px;
+        align-items: center;
+      }
+      #scan-card .meta .title {
+        font-weight: 700;
+        font-size: 20px;
+        color: #111;
+        text-align: center;
+      }
+      /* action icons on right */
+      #scan-card .actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex: 0 0 auto;
+      }
+      .icon-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #1976d2;
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .icon-btn.info { background:#455a64; }
+      .icon-btn.ar { background:#2e7d32; }
+      .icon-btn:active { transform: translateY(1px); }
+
+      /* footer vector slides up - stretch full width to remove side gaps */
+      #animated-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 140px;
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        pointer-events: none;
+        transform: translateY(100%);
+        transition: transform 600ms ease;
+        background: transparent;
+      }
+      #animated-footer.show {
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      /* stretch image full width so no small gaps remain */
+      #animated-footer img {
+        width: 100%;
+        height: auto;
+        max-height: 140px;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* responsive small */
+      @media (max-width: 520px) {
+        #scan-card { min-width: 300px; padding: 10px; bottom: 160px; }
+        #scan-card img { width: 72px; height: 72px; flex: 0 0 72px; }
+        .icon-btn { width: 40px; height: 40px; }
+      }
     </style>
   </head>
   <body>
-    <!-- Category selector (reloads page with ?category=...) -->
     <div class="category-select">
       <label for="category">Category:</label>
       <select id="category" onchange="onCategoryChange()">
@@ -25,9 +147,11 @@
 
     <a-scene id="ar-scene" mindar-image="imageTargetSrc: static/{{ current_category }}.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       <a-assets id="scene-assets">
-        {# load only models for the selected category #}
+        {# load 3D model assets for current category (we expect entry.src to be model URL) #}
         {% for m in models %}
+        {% if m.src %}
         <a-asset-item id="model{{ loop.index0 }}" src="{{ m.src }}"></a-asset-item>
+        {% endif %}
         {% endfor %}
       </a-assets>
 
@@ -35,14 +159,29 @@
 
       {% for m in models %}
       <a-entity mindar-image-target="targetIndex: {{ loop.index0 }}">
+        {% if m.src %}
         <a-gltf-model id="gltf-model-{{ loop.index0 }}" rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05" src="#model{{ loop.index0 }}" animation-mixer></a-gltf-model>
+        {% endif %}
       </a-entity>
       {% endfor %}
     </a-scene>
 
-    <!-- Single View AR button shown only for the currently detected model -->
-    <div id="view-ar-single">
-      <a id="view-ar-link" class="ar-btn" href="#" target="_blank" rel="noopener noreferrer">View AR</a>
+    <!-- Scan result card (centered) -->
+    <div id="scan-card" role="region" aria-live="polite" aria-hidden="true">
+      <img id="scan-img" src="" alt="target image">
+      <div class="meta">
+        <div class="title" id="scan-name">Name</div>
+      </div>
+      <div class="actions">
+        <a id="scan-info" class="icon-btn info" title="Info">i</a>
+        <a id="scan-ar" class="icon-btn ar" title="Open AR">AR</a>
+        <button id="scan-audio" class="icon-btn" title="Play audio">🔊</button>
+      </div>
+    </div>
+
+    <!-- animated footer vector -->
+    <div id="animated-footer">
+      <img src="/static/Vector 1789.png" alt="footer vector">
     </div>
 
     <script>
@@ -54,35 +193,118 @@
         window.location.href = url.toString();
       }
 
-      // When a target is found, show single AR button for that model and mark it activated on the server.
+      // full models data injected
+      const models = {{ models|tojson }};
+
       document.addEventListener('DOMContentLoaded', () => {
         const scene = document.getElementById('ar-scene');
-        const models = [
-          {% for m in models %}
-          { index: {{ loop.index0 }}, id: "{{ m.id }}", name: "{{ m.name }}", intent_link: "{{ m.intent_link }}", scene_link: "{{ m.scene_link }}" }{% if not loop.last %},{% endif %}
-          {% endfor %}
-        ];
-        const viewBtnWrap = document.getElementById('view-ar-single');
-        const viewLink = document.getElementById('view-ar-link');
 
-        // avoid duplicate activation calls per model during a session
+        // scan card UI
+        const scanCard = document.getElementById('scan-card');
+        const scanImg = document.getElementById('scan-img');
+        const scanName = document.getElementById('scan-name');
+        const scanInfo = document.getElementById('scan-info');
+        const scanAR = document.getElementById('scan-ar');
+        const scanAudioBtn = document.getElementById('scan-audio');
+        let currentAudio = null;
+
+        // show footer with slide up after short delay
+        const footer = document.getElementById('animated-footer');
+        setTimeout(()=> footer.classList.add('show'), 300);
+
+        // keep track of first popup shown per model so we don't re-run downloads/activations too often
         const activatedSent = new Set();
+        const firstShown = new Set();
 
-        // Attach listeners to each target entity. Only one button shown at a time.
+        // attach listeners to targets
         const targets = scene.querySelectorAll('[mindar-image-target]');
         targets.forEach((tgt, idx) => {
           tgt.addEventListener('targetFound', () => {
             const m = models[idx];
             if (!m) return;
 
-            // show single View AR button for this detected model
-            viewLink.href = m.intent_link;
-            viewLink.onclick = function(e){
-              // try intent first; also open web fallback after a short delay
-              setTimeout(function(){ window.open(m.scene_link, '_blank'); }, 600);
+            // prepare image (prefer downloaded image)
+            let imgSrc = null;
+            if (m.image && m.image.local) {
+              imgSrc = (m.image.local.startsWith('/') ? window.location.origin + m.image.local : m.image.local);
+            } else if (m.image && m.image.url) {
+              imgSrc = m.image.url;
+            } else if (m.src) {
+              imgSrc = (m.src.startsWith('/') ? window.location.origin + m.src : m.src);
+            } else if (m.targetCard && m.targetCard.local) {
+              imgSrc = (m.targetCard.local.startsWith('/') ? window.location.origin + m.targetCard.local : m.targetCard.local);
+            } else if (m.targetCard && m.targetCard.url) {
+              imgSrc = m.targetCard.url;
+            } else if (m.abs_src) {
+              imgSrc = m.abs_src;
+            }
+
+            scanImg.src = imgSrc || '';
+            scanImg.alt = m.name || 'target';
+            scanName.textContent = m.name || '';
+
+            // info link -> ?id=<id>
+            const infoHref = window.location.pathname + '?id=' + encodeURIComponent(m.id || '');
+            scanInfo.setAttribute('href', infoHref);
+            scanInfo.onclick = function(e){
+              e.preventDefault();
+              window.location.href = infoHref;
             };
-            viewLink.textContent = 'View AR: ' + m.name;
-            viewBtnWrap.style.display = 'block';
+
+            // AR icon: open scene_link (intent fallback)
+            scanAR.onclick = function(e){
+              if (m.intent_link) {
+                window.location.href = m.intent_link;
+                setTimeout(()=> {
+                  if (m.scene_link) window.open(m.scene_link, '_blank');
+                }, 600);
+              } else if (m.scene_link) {
+                window.open(m.scene_link, '_blank');
+              } else {
+                alert('AR view not available for this model.');
+              }
+            };
+
+            // audio resolution: prefer downloaded static (m.audio.local), else m.audio.url
+            let audioUrl = null;
+            if (m.audio && m.audio.local) {
+              audioUrl = (m.audio.local.startsWith('/') ? window.location.origin + m.audio.local : m.audio.local);
+            } else if (m.audio && m.audio.url) {
+              audioUrl = m.audio.url;
+            } else if (m.model && m.model.audio && m.model.audio.url) {
+              audioUrl = m.model.audio.url;
+            }
+
+            if (audioUrl) {
+              // prepare audio element for repeated plays: preload and reset currentTime on each click
+              if (!currentAudio || currentAudio.src !== audioUrl) {
+                currentAudio = new Audio(audioUrl);
+                currentAudio.preload = 'auto';
+                currentAudio.loop = false;
+              }
+              scanAudioBtn.onclick = function(e){
+                try {
+                  // reset to start so multiple clicks replay reliably
+                  currentAudio.currentTime = 0;
+                } catch (_) {}
+                currentAudio.play().catch(err => {
+                  // if browser blocks autoplay, inform user
+                  alert('Unable to play audio: ' + (err && err.message ? err.message : err));
+                });
+              };
+            } else {
+              // no audio; alert when user clicks
+              currentAudio = null;
+              scanAudioBtn.onclick = function(e){
+                alert('Audio not found for this target.');
+              };
+            }
+
+            // show animated card (and keep it visible after initial popup)
+            if (!scanCard.classList.contains('visible')) {
+              scanCard.classList.add('visible');
+              scanCard.setAttribute('aria-hidden', 'false');
+            }
 
             // notify server once that this model was scanned (mark activated = true)
             if (m.id && !activatedSent.has(m.id)) {
@@ -97,12 +319,18 @@
                 console.warn('activate request error', err);
               });
             }
+
+            // record firstShown so we can skip repetitive UI transitions per model if needed
+            firstShown.add(m.id || idx);
           });
+
+          // on targetLost pause audio but keep card visible so user can replay
           tgt.addEventListener('targetLost', () => {
-            // hide button when target lost
-            viewBtnWrap.style.display = 'none';
-            viewLink.href = '#';
-            viewLink.onclick = null;
+            if (currentAudio) {
+              try { currentAudio.pause(); } catch(e) {}
+              // do not null currentAudio so user can replay later
+            }
+            // intentionally do not remove .visible
           });
         });
       });

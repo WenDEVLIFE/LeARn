@@ -1,481 +1,65 @@
 [
-  {
-    "Class": "Alligator",
-    "Category": "animals",
-    "Model": "Alligator.glb",
-    "Thumb": "Alligator.jpg",
-    "Sound": "crocodile-groans.mp3"
-  },
-  {
-    "Class": "Beagle",
-    "Category": "animals",
-    "Model": "Beagle.glb",
-    "Thumb": "Beagle.jpg",
-    "Sound": "dog-bark-sound-effect-322989.mp3"
-  },
-  {
-    "Class": "Capuchin",
-    "Category": "animals",
-    "Model": "Capuchin.glb",
-    "Thumb": "Capuchin.jpg",
-    "Sound": "monkey-128368.mp3"
-  },
-  {
-    "Class": "Cat",
-    "Category": "animals",
-    "Model": "Cat.glb",
-    "Thumb": "Cat.jpg",
-    "Sound": "cute-cat-352656.mp3"
-  },
-  {
-    "Class": "Cow",
-    "Category": "animals",
-    "Model": "Cow.glb",
-    "Thumb": "Cow.jpg",
-    "Sound": "cow-mooing-343423.mp3"
-  },
-  {
-    "Class": "Goat",
-    "Category": "animals",
-    "Model": "Goat.glb",
-    "Thumb": "Goat.jpg",
-    "Sound": "goat-sound-403453.mp3"
-  },
-  {
-    "Class": "Horse",
-    "Category": "animals",
-    "Model": "Horse.glb",
-    "Thumb": "Horse.jpg",
-    "Sound": "mixkit-scared-horse-neighing-85.wav"
-  },
-  {
-    "Class": "Pig",
-    "Category": "animals",
-    "Model": "Pig.glb",
-    "Thumb": "Pig.jpg",
-    "Sound": "pig-grunt-100272.mp3"
-  },
-  {
-    "Class": "Rabbit",
-    "Category": "animals",
-    "Model": "Rabbit.glb",
-    "Thumb": "Rabbit.jpg",
-    "Sound": "rabbit-sounds-358172.mp3"
-  },
-  {
-    "Class": "Rooster",
-    "Category": "animals",
-    "Model": "Rooster.glb",
-    "Thumb": "Rooster.jpg",
-    "Sound": "chicken-sound-402826.mp3"
-  },
-  {
-    "Class": "Snake",
-    "Category": "animals",
-    "Model": "Snake.glb",
-    "Thumb": "Snake.jpg",
-    "Sound": "snake-hiss-95241.mp3"
-  },
-  {
-    "Class": "Tiger",
-    "Category": "animals",
-    "Model": "Tiger.glb",
-    "Thumb": "Tiger.jpg",
-    "Sound": "tiger-attack-195840.mp3"
-  },
-
-  {
-    "Class": "Apple",
-    "Category": "fruits",
-    "Model": "Apple.glb",
-    "Thumb": "Apple.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Apple Green",
-    "Category": "fruits",
-    "Model": "Apple Green.glb",
-    "Thumb": "Apple Green.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Avocado",
-    "Category": "fruits",
-    "Model": "Avocado.glb",
-    "Thumb": "Avocado.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Banana",
-    "Category": "fruits",
-    "Model": "Banana.glb",
-    "Thumb": "Banana.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Blueberries",
-    "Category": "fruits",
-    "Model": "Blueberries.glb",
-    "Thumb": "Blueberries.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Cherry",
-    "Category": "fruits",
-    "Model": "Cherry.glb",
-    "Thumb": "Cherry.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Coconut",
-    "Category": "fruits",
-    "Model": "Coconut.glb",
-    "Thumb": "Coconut.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Grapes",
-    "Category": "fruits",
-    "Model": "Missing model for Grapes",
-    "Thumb": "Grapes.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Kiwi",
-    "Category": "fruits",
-    "Model": "Kiwi.glb",
-    "Thumb": "Kiwi.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Lemon",
-    "Category": "fruits",
-    "Model": "Lemon.glb",
-    "Thumb": "Lemon.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Lime",
-    "Category": "fruits",
-    "Model": "Lime.glb",
-    "Thumb": "Lime.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Mango",
-    "Category": "fruits",
-    "Model": "mango.glb",
-    "Thumb": "mango.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Orange",
-    "Category": "fruits",
-    "Model": "Orange.glb",
-    "Thumb": "Orange.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Papaya",
-    "Category": "fruits",
-    "Model": "Papaya.glb",
-    "Thumb": "Papaya.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Passion Fruit",
-    "Category": "fruits",
-    "Model": "passion_fruit.glb",
-    "Thumb": "passion_fruit.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Peach",
-    "Category": "fruits",
-    "Model": "Peach.glb",
-    "Thumb": "Peach.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Pear",
-    "Category": "fruits",
-    "Model": "Pear.glb",
-    "Thumb": "Pear.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Pineapple",
-    "Category": "fruits",
-    "Model": "Pineapple.glb",
-    "Thumb": "Pineapple.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Plum",
-    "Category": "fruits",
-    "Model": "Plum.glb",
-    "Thumb": "Plum.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Pomegranate",
-    "Category": "fruits",
-    "Model": "pomegranate.glb",
-    "Thumb": "pomegranate.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Raspberry",
-    "Category": "fruits",
-    "Model": "raspberry.glb",
-    "Thumb": "raspberry.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Strawberries",
-    "Category": "fruits",
-    "Model": "Strawberries.glb",
-    "Thumb": "Strawberries.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Tangerine",
-    "Category": "fruits",
-    "Model": "Tangerine.glb",
-    "Thumb": "Tangerine.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Tomato",
-    "Category": "fruits",
-    "Model": "Tomato.glb",
-    "Thumb": "Tomato.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Watermelon",
-    "Category": "fruits",
-    "Model": "Watermelon.glb",
-    "Thumb": "Watermelon.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Galia Melon",
-    "Category": "fruits",
-    "Model": "galia_melon.glb",
-    "Thumb": "galia_melon.jpg",
-    "Sound": null
-  },
-
-  {
-    "Class": "Airplane",
-    "Category": "vehicles",
-    "Model": "Copy of Airplane.glb",
-    "Thumb": "Copy of Airplane.jpg",
-    "Sound": "airplane-aircraft-take-off-121949.mp3"
-  },
-  {
-    "Class": "Ambulance",
-    "Category": "vehicles",
-    "Model": "Copy of Ambulance.glb",
-    "Thumb": "Copy of Ambulance.jpg",
-    "Sound": "ambulance-siren-363656.mp3"
-  },
-  {
-    "Class": "Bicycle",
-    "Category": "vehicles",
-    "Model": "Copy of Bicycle.glb",
-    "Thumb": "Copy of Bicycle.jpg",
-    "Sound": "bike-38433.mp3"
-  },
-  {
-    "Class": "Boat",
-    "Category": "vehicles",
-    "Model": "Copy of Boat.glb",
-    "Thumb": "Copy of Boat.jpg",
-    "Sound": "boat.mp3"
-  },
-  {
-    "Class": "Bulldozer",
-    "Category": "vehicles",
-    "Model": "Copy of Bulldozer.glb",
-    "Thumb": "Copy of Bulldozer.jpg",
-    "Sound": "sound-of-a-bulldozer-151161.mp3"
-  },
-  {
-    "Class": "Bus",
-    "Category": "vehicles",
-    "Model": "Copy of Bus.glb",
-    "Thumb": "Copy of Bus.jpg",
-    "Sound": "transportation_bus_driving_freeway_internal_001.mp3"
-  },
-  {
-    "Class": "Helicopter",
-    "Category": "vehicles",
-    "Model": "Copy of Helicopter.glb",
-    "Thumb": "Copy of Helicopter.jpg",
-    "Sound": "helicopter-ambience-353004.mp3"
-  },
-  {
-    "Class": "Hot Air Balloon",
-    "Category": "vehicles",
-    "Model": "Copy of Hot air balloon.glb",
-    "Thumb": "Copy of Hot air balloon.jpg",
-    "Sound": "hotairbaloontorch-60586.mp3"
-  },
-  {
-    "Class": "Jeep",
-    "Category": "vehicles",
-    "Model": "Copy of Jeep.glb",
-    "Thumb": "Copy of Jeep.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Motorcycle",
-    "Category": "vehicles",
-    "Model": "Copy of Motorcycle.glb",
-    "Thumb": "Copy of Motorcycle.jpg",
-    "Sound": "motorcycle-77112.mp3"
-  },
-  {
-    "Class": "Police Car",
-    "Category": "vehicles",
-    "Model": "Copy of Police Car.glb",
-    "Thumb": "Copy of Police Car.jpg",
-    "Sound": "police-car-298078.mp3"
-  },
-  {
-    "Class": "Tank",
-    "Category": "vehicles",
-    "Model": "Copy of Tank.glb",
-    "Thumb": "Copy of Tank.jpg",
-    "Sound": "tank-moving-sfx-319878.mp3"
-  },
-  {
-    "Class": "Train",
-    "Category": "vehicles",
-    "Model": "Copy of Train.glb",
-    "Thumb": "Copy of Train.jpg",
-    "Sound": "train-online-audio-converter.mp3"
-  },
-  {
-    "Class": "Truck",
-    "Category": "vehicles",
-    "Model": "Copy of Truckk.glb",
-    "Thumb": "Copy of Truckk.jpg",
-    "Sound": "truck-driving-6412.mp3"
-  },
-  {
-    "Class": "Unicycle",
-    "Category": "vehicles",
-    "Model": "Copy of Unicycle.glb",
-    "Thumb": "Copy of Unicycle.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Car",
-    "Category": "vehicles",
-    "Model": "Missing model for Car",
-    "Thumb": null,
-    "Sound": "car-pass-by-337871.mp3"
-  },
-
-  {
-    "Class": "Circle",
-    "Category": "shapes",
-    "Model": "Circle.glb",
-    "Thumb": "Circle.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Cone Shape",
-    "Category": "shapes",
-    "Model": "Cone Shape.glb",
-    "Thumb": "Cone Shape.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Cube",
-    "Category": "shapes",
-    "Model": "cube.glb",
-    "Thumb": "cube.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Cylinder",
-    "Category": "shapes",
-    "Model": "cylinder.glb",
-    "Thumb": "cylinder.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Diamond",
-    "Category": "shapes",
-    "Model": "Diamond.glb",
-    "Thumb": "Diamond.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Heart",
-    "Category": "shapes",
-    "Model": "Heart.glb",
-    "Thumb": "Heart.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Hexagon",
-    "Category": "shapes",
-    "Model": "hexagon.glb",
-    "Thumb": "hexagon.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Pentagon",
-    "Category": "shapes",
-    "Model": "pentagon_shape.glb",
-    "Thumb": "pentagon_shape.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Pyramid",
-    "Category": "shapes",
-    "Model": "pyramid.glb",
-    "Thumb": "pyramid.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Rectangle",
-    "Category": "shapes",
-    "Model": "rectangle.glb",
-    "Thumb": "rectangle.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Sphere",
-    "Category": "shapes",
-    "Model": "sphere.glb",
-    "Thumb": "sphere.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Square",
-    "Category": "shapes",
-    "Model": "square.glb",
-    "Thumb": "square.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Star",
-    "Category": "shapes",
-    "Model": "Star.glb",
-    "Thumb": "Star.jpg",
-    "Sound": null
-  },
-  {
-    "Class": "Triangle",
-    "Category": "shapes",
-    "Model": "triangle.glb",
-    "Thumb": "triangle.jpg",
-    "Sound": null
-  }
+  { "name": "Pineapple", "description": "A tropical fruit with spiky skin and sweet, tangy yellow flesh, often used in desserts and juices." },
+  { "name": "Truck", "description": "A large motor vehicle designed to transport goods or heavy loads over long distances." },
+  { "name": "Sphere", "description": "A perfectly round 3D shape where every point on the surface is equidistant from the center." },
+  { "name": "Square", "description": "A flat shape with four equal sides and four right angles, often used in geometry and design." },
+  { "name": "Beagle", "description": "A small, friendly dog breed known for its strong sense of smell and energetic personality." },
+  { "name": "Helicopter", "description": "An aircraft that flies using rotating blades, capable of vertical takeoff and hovering in one spot." },
+  { "name": "Police Car", "description": "A vehicle used by law enforcement officers for patrolling and responding to emergencies." },
+  { "name": "Watermelon", "description": "A large, juicy fruit with green rind and red flesh filled with black seeds, popular in summer." },
+  { "name": "Kiwi", "description": "A small, brown, fuzzy fruit with bright green flesh and tiny black seeds, rich in vitamin C." },
+  { "name": "Tank", "description": "A heavily armored military vehicle equipped with large guns, used in combat operations." },
+  { "name": "Pear", "description": "A sweet fruit with a bell-like shape and smooth, green or yellow skin." },
+  { "name": "Circle", "description": "A 2D shape where all points are equally distant from a central point." },
+  { "name": "Diamond", "description": "A geometric shape with four equal sides set at an angle, resembling a tilted square." },
+  { "name": "Train", "description": "A series of connected vehicles that run along rails, used for transporting people or goods." },
+  { "name": "Lime", "description": "A small green citrus fruit known for its sour taste and refreshing aroma." },
+  { "name": "Heart", "description": "A symbol representing love, compassion, and emotion, often drawn with two curves meeting at a point." },
+  { "name": "Cow", "description": "A large domesticated animal raised for milk, meat, and leather." },
+  { "name": "Pig", "description": "A farm animal known for its intelligence, pinkish skin, and use in producing pork products." },
+  { "name": "Alligator", "description": "A large reptile with a powerful jaw and thick skin, found in freshwater habitats." },
+  { "name": "Snake", "description": "A legless reptile with a long, slender body that moves by slithering." },
+  { "name": "Star", "description": "A five-pointed shape often used to symbolize excellence, light, or fame." },
+  { "name": "Capuchin", "description": "A small, intelligent monkey species known for its expressive face and curiosity." },
+  { "name": "Lemon", "description": "A bright yellow citrus fruit with a tangy, acidic taste, rich in vitamin C." },
+  { "name": "Unicycle", "description": "A single-wheeled cycle often used in circuses and balance training." },
+  { "name": "Hot Air Balloon", "description": "A large balloon filled with heated air that carries passengers in a basket through the sky." },
+  { "name": "Passion Fruit", "description": "A tropical fruit with a tough rind and sweet-tart pulp filled with edible seeds." },
+  { "name": "Banana", "description": "A long, curved yellow fruit that is soft and sweet inside, rich in potassium." },
+  { "name": "Rooster", "description": "A male chicken known for its colorful feathers and early morning crowing." },
+  { "name": "Plum", "description": "A small, juicy fruit with smooth skin and a single pit in the center." },
+  { "name": "Hexagon", "description": "A polygon with six equal sides and six angles, often seen in honeycombs." },
+  { "name": "Pomegranate", "description": "A round fruit filled with juicy red seeds, rich in antioxidants and nutrients." },
+  { "name": "Triangle", "description": "A shape with three sides and three angles, one of the basic geometric forms." },
+  { "name": "Motorcycle", "description": "A two-wheeled motor vehicle designed for fast travel and maneuverability." },
+  { "name": "Apple Green", "description": "A variety of apple with crisp, tart green skin and juicy flesh." },
+  { "name": "Strawberries", "description": "Small red fruits with a sweet flavor and tiny seeds on their surface." },
+  { "name": "Apple", "description": "A popular fruit with smooth skin and crisp, juicy flesh, available in red, green, and yellow varieties." },
+  { "name": "Orange", "description": "A round citrus fruit known for its bright color, sweet flavor, and vitamin C content." },
+  { "name": "Mango", "description": "A sweet, tropical fruit with smooth skin and juicy orange flesh surrounding a large seed." },
+  { "name": "Papaya", "description": "A tropical fruit with orange flesh, black seeds, and a mildly sweet flavor." },
+  { "name": "Rectangle", "description": "A four-sided shape with opposite sides equal and all angles at 90 degrees." },
+  { "name": "Avocado", "description": "A creamy green fruit rich in healthy fats, often used in salads and spreads." },
+  { "name": "Tangerine", "description": "A small orange citrus fruit that is easy to peel and sweet in flavor." },
+  { "name": "Cube", "description": "A three-dimensional shape with six equal square faces, like a dice." },
+  { "name": "Goat", "description": "A farm animal with horns and a beard, known for producing milk and being a good climber." },
+  { "name": "Tiger", "description": "A large striped wild cat known for its strength, speed, and predatory skills." },
+  { "name": "Bicycle", "description": "A two-wheeled human-powered vehicle propelled by pedaling." },
+  { "name": "Ambulance", "description": "A medical emergency vehicle equipped to transport patients to hospitals." },
+  { "name": "Boat", "description": "A watercraft designed to float and move across lakes, rivers, or oceans." },
+  { "name": "Tomato", "description": "A red, juicy fruit often used in salads and sauces, botanically a fruit but treated as a vegetable." },
+  { "name": "Coconut", "description": "A large tropical fruit with a hard shell, fibrous husk, and edible white flesh." },
+  { "name": "Airplane", "description": "A powered flying vehicle with fixed wings and engines that enable flight." },
+  { "name": "Pentagon Shape", "description": "A five-sided polygon often used in design and architecture." },
+  { "name": "Blueberries", "description": "Small, round blue fruits that are sweet, nutritious, and packed with antioxidants." },
+  { "name": "Horse", "description": "A strong, fast mammal domesticated for riding, racing, and farm work." },
+  { "name": "Cone Shape", "description": "A 3D geometric shape with a circular base that tapers to a single point." },
+  { "name": "Cat", "description": "A small domesticated feline known for its agility, curiosity, and playful nature." },
+  { "name": "Peach", "description": "A soft, fuzzy fruit with juicy yellow or pink flesh and a large pit." },
+  { "name": "Bus", "description": "A large motor vehicle designed to carry multiple passengers along fixed routes." },
+  { "name": "Jeep", "description": "A rugged, four-wheel-drive vehicle designed for off-road and outdoor travel." },
+  { "name": "Rabbit", "description": "A small, furry animal with long ears and strong hind legs, known for hopping and burrowing." },
+  { "name": "Cherry", "description": "A small red fruit with a sweet or tart flavor and a single seed inside." },
+  { "name": "Cylinder", "description": "A 3D shape with two parallel circular bases connected by a curved surface." },
+  { "name": "Pyramid", "description": "A solid shape with a polygon base and triangular sides that meet at a point." }
 ]

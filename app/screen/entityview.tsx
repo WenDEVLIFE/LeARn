@@ -24,11 +24,19 @@ export default function EntityView() {
     (async () => {
       setLoading(true);
       try {
-        const filter = category ? { category } : {};
+        // always require activated === true; include category when provided
+        const filter = { ...(category ? { category } : {}), activated: true };
         const res = await select('models', filter);
         const rows = res.success && Array.isArray(res.data) ? res.data : [];
+
+        // extra client-side safety: ensure only activated items are used
+        const activeRows = rows.filter((r: any) =>
+          r != null &&
+          (r.activated === true || r.activated === 'true' || r.activated === 1)
+        );
+
         // map DB rows to entities suitable for display
-        const mapped = rows.map((r: any) => ({
+        const mapped = activeRows.map((r: any) => ({
           id: r.id,
           name: r.name || r.filename || 'Untitled',
           // prefer URL if present, otherwise try to use local placeholder
@@ -93,7 +101,7 @@ export default function EntityView() {
           <BackIcon color="black" size={24} />
         </TouchableOpacity>
         <ThemedText type="title" style={styles.title}>
-          {category ? `${String(category).toUpperCase()} Entities` : 'Entities'}
+          {category ? `${String(category).toUpperCase()} ` : 'Entities'}
         </ThemedText>
         <View style={{ width: 24 }} />
       </Animated.View>

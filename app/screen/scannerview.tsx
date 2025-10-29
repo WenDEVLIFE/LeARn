@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { useAppFonts } from '@/hooks/use-fonts';
+import * as Linking from 'expo-linking'; // <-- added
 import { useRouter } from 'expo-router';
 import { ArrowLeft as BackIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -82,69 +83,117 @@ export default function ScannerView() {
   // Helper to generate a safe lowercase filename for each animal (e.g. "Alligator" -> "alligator.glb")
   const filenameFor = (name: string) => name.toLowerCase().replace(/\s+/g, '_') + '.glb';
 
-  // Inline MindAR HTML. Update the paths below if your files are located elsewhere.
-  const mindarHtml = `
-  <!doctype html>
-  <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-      <style>body { margin: 0; overflow: hidden; }</style>
-    </head>
-    <body>
-      <a-scene mindar-image="imageTargetSrc: /assets/ar/animals.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-        <a-assets>
-          <!-- preload only existing models from /assets/glb/ -->
-          ${animalNames.map((n, i) => availableModels.has(n) ? `<a-asset-item id="model${i}" src="/assets/glb/${filenameFor(n)}"></a-asset-item>` : '').join('\n')}
-        </a-assets>
+  // NOTE: render the remote server page instead of inline HTML
+  const remoteUrl = 'https://dorsugympromanager.pythonanywhere.com/';
 
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  // helper to detect id param in a url
+  const extractIdFromUrl = (url: string) => {
+    try {
+      const m = url.match(/[?&]id=([^&]*)/);
+      if (m && m[1] !== undefined) {
+        const id = decodeURIComponent(m[1]);
+        return id && id.length > 0 ? id : null;
+      }
+    } catch (e) {}
+    return null;
+  };
 
-        <!-- Create one entity per targetIndex (0..18). If model missing, show a placeholder box + label -->
-        ${animalNames.map((n, i) => `
-          <a-entity mindar-image-target="targetIndex: ${i}">
-            ${availableModels.has(n) ? `<a-gltf-model rotation="0 0 0" position="0 -0.25 0" scale="0.05 0.05 0.05" src="#model${i}" animation-mixer></a-gltf-model>` : `<a-box position="0 -0.25 0" scale="0.2 0.2 0.2" color="#555"></a-box><a-text value="${n} (no model)" color="#FFF" align="center" position="0 -0.6 0" scale="0.5 0.5 0.5"></a-text>`}
-          </a-entity>
-        `).join('\n')}
-      </a-scene>
+  // New helpers: determine http(s) and handle non-http / intent links by opening browser/fallback
+  const isHttp = (u: string) => /^https?:\/\//i.test(u);
 
-      <script>
-        // Notify React Native when AR scene has started rendering.
-        function notifyLoaded(){
-          try {
-            if(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === 'function'){
-              window.ReactNativeWebView.postMessage('mindar-loaded');
-            }
-          } catch(e){}
+  const openExternalOrFallback = (url: string) => {
+    if (!url) return;
+    try {
+      // handle Android intent:// URIs: try to extract browser fallback first
+      if (url.startsWith('intent:')) {
+        const m = url.match(/(?:S\.browser_fallback_url=|browser_fallback_url=)([^;]+)/);
+        if (m && m[1]) {
+          const fallback = decodeURIComponent(m[1]);
+          Linking.openURL(fallback).catch(() => {});
+          return;
         }
+        // fallback: convert intent://host/...;... to https://host/...
+        const converted = url.replace(/^intent:\/\//, 'https://').split(';')[0];
+        Linking.openURL(converted).catch(() => {});
+        return;
+      }
 
-        document.addEventListener('DOMContentLoaded', function(){
-          var scene = document.querySelector('a-scene');
-          if(scene){
-            scene.addEventListener('renderstart', function(){
-              notifyLoaded();
-            }, { once: true });
-          }
-          // Fallback: notify after 6s if renderstart not fired
-          setTimeout(notifyLoaded, 6000);
+      // non-http schemes (mailto:, tel:, whatsapp:, etc.) — try open directly, then fallback to https conversion
+      const scheme = (url.split(':')[0] || '').toLowerCase();
+      if (!isHttp(url) && scheme && scheme !== 'file' && scheme !== 'data' && scheme !== 'about') {
+        Linking.openURL(url).catch(() => {
+          // fallback: try to open as https by replacing the scheme
+          const asHttps = url.replace(/^[^:]+:\/\//, 'https://');
+          Linking.openURL(asHttps).catch(() => {});
         });
-      </script>
-    </body>
-  </html>
-  `;
+        return;
+      }
+
+      // default: open http(s) in external browser instead of inside Expo WebView
+      if (isHttp(url)) {
+        Linking.openURL(url).catch(() => {});
+        return;
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
 
   return (
     <View style={styles.container}>
       <WebView
         originWhitelist={['*']}
-        source={{ html: mindarHtml }}
+        source={{ uri: remoteUrl }}
         style={StyleSheet.absoluteFillObject}
         javaScriptEnabled
         domStorageEnabled
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
+
+        /* Android: allow http / mixed content */
+        mixedContentMode="always"
+        allowFileAccess={true}
+        allowUniversalAccessFromFileURLs={true}
+
+        /* Some pages block non‑Chrome UAs — present a Chrome UA */
+        userAgent="Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+
+        /* Intercept navigation before it happens (Android+iOS) */
+        onShouldStartLoadWithRequest={(request) => {
+          const url = request.url || '';
+          const id = extractIdFromUrl(url);
+          if (id) {
+            router.replace(`/screen/infoview?id=${encodeURIComponent(id)}`);
+            return false;
+          }
+
+          // If it's an http(s) url we allow it to load in the WebView.
+          // For intent:// or other non-http(s) deep links (which Expo Go can't handle),
+          // open them in the external browser / appropriate fallback and block the WebView.
+          if (isHttp(url)) {
+            return true;
+          }
+
+          // Non-http(s) — open externally and prevent WebView from loading it
+          openExternalOrFallback(url);
+          return false;
+        }}
+
+        /* Backup detection on navigation change */
+        onNavigationStateChange={(navState) => {
+          const url = navState.url || '';
+          const id = extractIdFromUrl(url);
+          if (id) {
+            router.replace(`/screen/infoview?id=${encodeURIComponent(id)}`);
+            return;
+          }
+
+          // If navigation changed to an intent or deep link, redirect externally
+          if (!isHttp(url)) {
+            openExternalOrFallback(url);
+          }
+        }}
+
         onMessage={(event) => {
           if (event.nativeEvent.data === 'mindar-loaded') {
             setLoaded(true);
@@ -163,14 +212,6 @@ export default function ScannerView() {
         </TouchableOpacity>
       </View>
 
-      {/* Small alert/status box */}
-      {showAlert && (
-        <View style={styles.statusAlert}>
-          <ThemedText style={styles.statusText}>
-            {loaded ? 'AR ready — scripts & .mind loaded' : 'Loading AR scripts and .mind...'}
-          </ThemedText>
-        </View>
-      )}
     </View>
   );
 }

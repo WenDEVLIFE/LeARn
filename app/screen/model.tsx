@@ -369,34 +369,47 @@ export default function ModelScreen() {
 
   // reset all activated => false
   async function resetAllActive() {
-    Alert.alert('Confirm', 'Set all models to inactive?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Yes',
-        onPress: async () => {
-          setLoading(true);
-          try {
-            // ensure we have latest list
-            const res = await select('models', {});
-            const rows: ModelItem[] = res.success && Array.isArray(res.data) ? res.data : [];
-            await Promise.all(rows.map(async (r) => {
-              if (!r.id) return;
-              // update activated only if it's truthy to reduce write ops (optional)
-              if (r.activated) {
-                await update('models', { activated: false }, { id: r.id });
-              }
-            }));
-            Alert.alert('Done', 'All models set to inactive');
-            await fetchItems();
-          } catch (e: any) {
-            console.error(e);
-            Alert.alert('Error', e?.message ?? String(e));
-          } finally {
-            setLoading(false);
-          }
-        }
-      }
-    ]);
+    // handle web (Alert.alert buttons often don't run on web) and mobile
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Set all models to inactive?')
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert('Confirm', 'Set all models to inactive?', [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Yes', onPress: () => resolve(true) }
+          ]);
+        });
+
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const res = await select('models', {});
+      const rows: ModelItem[] = res.success && Array.isArray(res.data) ? res.data : [];
+      console.log('resetAllActive - fetched rows count:', rows.length);
+
+      await Promise.all(rows.map(async (r) => {
+        if (!r.id) return;
+        // normalize different possible representations of truthy values
+        const activatedVal = r.activated;
+        const isActive = typeof activatedVal === 'string'
+          ? (activatedVal === '1' || activatedVal.toLowerCase() === 'true')
+          : Boolean(activatedVal);
+
+        if (!isActive) return;
+
+        console.log(`resetAllActive - updating id=${r.id}, activated=${activatedVal} -> false`);
+        const upd = await update('models', { activated: false }, { id: r.id });
+        console.log('resetAllActive - update result for', r.id, upd);
+      }));
+
+      Alert.alert('Done', 'All models set to inactive');
+      await fetchItems();
+    } catch (e: any) {
+      console.error('resetAllActive error:', e);
+      Alert.alert('Error', e?.message ?? String(e));
+    } finally {
+      setLoading(false);
+    }
   }
 
 

@@ -43,7 +43,8 @@ export default function FlashCardLibraryView() {
     (async () => {
       setLoading(true);
       try {
-        const res = await select('models', {});
+        // fetch only discovered/activated models
+        const res = await select('models', { activated: true });
         const rows = res.success && Array.isArray(res.data) ? res.data : [];
         if (mounted) setModels(rows);
       } catch (e) {
@@ -110,9 +111,13 @@ export default function FlashCardLibraryView() {
     },
   ];
 
-  // compute counts for categories from fetched models (optional)
+  // compute counts for categories from fetched (activated/discovered) models
   const categoryCounts = categories.reduce<Record<string, number>>((acc, c) => {
-    acc[c.id] = models.filter(m => m.category === c.id).length;
+    acc[c.id] = models.filter(m =>
+      m != null &&
+      m.category === c.id &&
+      (m.activated === true || m.activated === 'true' || m.activated === 1)
+    ).length;
     return acc;
   }, {});
 
