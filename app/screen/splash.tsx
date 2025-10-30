@@ -45,12 +45,16 @@ export default function SplashScreen() {
       })
     ).start();
 
-    // Only redirect from the splash screen. If user navigated directly to another route
-    // (for example on web: /screen/model), skip the automatic redirect.
-    const pathname = typeof window !== 'undefined' ? window.location.pathname : null;
-    if (pathname && !pathname.includes('/screen/splash') && pathname !== '/' ) {
-      // user opened a different route directly — do not auto-redirect
-      return;
+    // Only redirect from the splash screen. 
+    // On web, check if user navigated directly to another route - skip auto-redirect
+    // On native platforms, always navigate after timeout
+    const isWeb = typeof window !== 'undefined' && window.location;
+    if (isWeb) {
+      const pathname = window.location.pathname;
+      if (pathname && !pathname.includes('/screen/splash') && pathname !== '/') {
+        // user opened a different route directly on web — do not auto-redirect
+        return;
+      }
     }
 
     // Navigate to main view after 3 seconds (keeps existing behavior when on splash)

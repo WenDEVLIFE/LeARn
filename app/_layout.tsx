@@ -26,7 +26,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack initialRouteName="screen/splash">
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="screen/splash" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="screen/model" options={{ title: 'Models', headerShown: true }} />
